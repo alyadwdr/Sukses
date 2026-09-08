@@ -1,0 +1,14 @@
+:root {
+  --color-primary: #95B1EE;
+  --color-base: #FFFDF5;
+  --color-accent: #E7F1A8;
+  --color-dark: #364C84;
+}
+
+[data-theme='dark'] {
+  --color-bg: #1A2138;
+  --color-card: #242C4A;
+  --color-primary: #95B1EE;
+  --color-accent: #E7F1A8;
+  --color-text: #FFFDF5;
+}
