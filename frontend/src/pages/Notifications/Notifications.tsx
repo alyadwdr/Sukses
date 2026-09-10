@@ -10,7 +10,7 @@ export default function Notifications() {
       {loading ? (
         <p>Loading...</p>
       ) : notifications.length === 0 ? (
-        <p style={{ color: '#999' }}>No notifications right now</p>
+        <p style={{ color: 'var(--color-text-muted)' }}>No notifications right now</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {notifications.map((n) => (
@@ -29,7 +29,7 @@ export default function Notifications() {
               <div>
                 {n.name} is {n.level === 'critical' ? 'almost out of stock' : 'running low'}.
               </div>
-              <div style={{ fontSize: 13, color: '#666' }}>
+              <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
                 Current stock: {n.stock} {n.unit}
               </div>
             </div>

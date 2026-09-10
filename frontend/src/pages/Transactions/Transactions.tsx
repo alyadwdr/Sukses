@@ -1,51 +1,101 @@
 import { useState } from 'react'
+import { Plus } from 'lucide-react'
 import NewTransactionForm from '@/features/transactions/NewTransactionForm'
 import { useTransactions } from '@/features/transactions/useTransactions'
 import AllTransactionsTable from '@/features/transactions/AllTransactionsTable'
 import ReceiptCard from '@/features/transactions/ReceiptCard'
-import PageHeader from '@/components/PageHeader/PageHeader'
+import Card from '@/components/Card/Card'
+import { useBusinessFilter } from '@/context/BusinessFilterContext'
 
 type ViewMode = 'all' | 'receipts'
+
+const filterOptions: { label: string; value: 'all' | 'plastik' | 'sembako' }[] = [
+  { label: 'Sembako & Plastik', value: 'all' },
+  { label: 'Plastik', value: 'plastik' },
+  { label: 'Sembako', value: 'sembako' },
+]
 
 export default function Transactions() {
   const [showForm, setShowForm] = useState(false)
   const [view, setView] = useState<ViewMode>('all')
   const { transactions, loading, refetch } = useTransactions()
+  const { filter, setFilter } = useBusinessFilter()
 
   return (
-    <div>
-      <PageHeader
-        title="Transactions"
-        action={
-          <button onClick={() => setShowForm(true)} style={{ padding: '8px 16px', borderRadius: 8, background: '#95B1EE', border: 'none' }}>
-            + New Transaction
-          </button>
-        }
-        showFilter={!showForm}
-      />
-
-      {showForm && (
-        <div style={{ padding: 16, border: '1px solid #eee', borderRadius: 12, marginBottom: 24 }}>
-          <NewTransactionForm
-            onSuccess={() => {
-              setShowForm(false)
-              refetch()
-            }}
-            onCancel={() => setShowForm(false)}
-          />
-        </div>
-      )}
-
-      {!showForm && (
+    <Card style={{ boxShadow: 'var(--shadow-card)', minHeight: '80vh' }}>
+      {showForm ? (
+        <NewTransactionForm
+          onSuccess={() => {
+            setShowForm(false)
+            refetch()
+          }}
+          onCancel={() => setShowForm(false)}
+        />
+      ) : (
         <>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+            <h1 style={{ color: 'var(--color-text)' }}>Transactions</h1>
+            <button
+              onClick={() => setShowForm(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '10px 20px',
+                borderRadius: 24,
+                background: 'var(--color-primary)',
+                color: '#fff',
+                border: 'none',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              <Plus size={16} /> New Transaction
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                padding: 4,
+                borderRadius: 20,
+                background: 'var(--color-bg)',
+                border: '1px solid var(--color-border)',
+              }}
+            >
+              {filterOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setFilter(opt.value)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 16,
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: filter === opt.value ? 'var(--color-primary)' : 'transparent',
+                    color: filter === opt.value ? '#fff' : 'var(--color-text)',
+                    fontWeight: filter === opt.value ? 600 : 400,
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 24, borderBottom: '1px solid var(--color-border)', marginBottom: 20 }}>
             <button
               onClick={() => setView('all')}
               style={{
-                padding: '6px 14px',
-                borderRadius: 8,
+                padding: '10px 4px',
+                background: 'transparent',
                 border: 'none',
-                background: view === 'all' ? 'var(--color-primary)' : 'transparent',
+                borderBottom: view === 'all' ? '2px solid var(--color-primary)' : '2px solid transparent',
+                color: view === 'all' ? 'var(--color-text)' : 'var(--color-text-muted)',
+                fontWeight: view === 'all' ? 600 : 400,
+                cursor: 'pointer',
+                marginBottom: -1,
               }}
             >
               All Transactions
@@ -53,10 +103,14 @@ export default function Transactions() {
             <button
               onClick={() => setView('receipts')}
               style={{
-                padding: '6px 14px',
-                borderRadius: 8,
+                padding: '10px 4px',
+                background: 'transparent',
                 border: 'none',
-                background: view === 'receipts' ? 'var(--color-primary)' : 'transparent',
+                borderBottom: view === 'receipts' ? '2px solid var(--color-primary)' : '2px solid transparent',
+                color: view === 'receipts' ? 'var(--color-text)' : 'var(--color-text-muted)',
+                fontWeight: view === 'receipts' ? 600 : 400,
+                cursor: 'pointer',
+                marginBottom: -1,
               }}
             >
               Receipts
@@ -64,11 +118,11 @@ export default function Transactions() {
           </div>
 
           {loading ? (
-            <p>Loading...</p>
+            <p>Memuat...</p>
           ) : view === 'all' ? (
             <AllTransactionsTable transactions={transactions} />
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
               {transactions.map((trx) => (
                 <ReceiptCard key={trx.id} transaction={trx} />
               ))}
@@ -76,6 +130,6 @@ export default function Transactions() {
           )}
         </>
       )}
-    </div>
+    </Card>
   )
 }

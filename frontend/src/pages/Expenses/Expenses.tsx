@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useExpenses } from '@/features/expenses/useExpenses'
 import AddExpenseForm from '@/features/expenses/AddExpenseForm'
+import Card from '@/components/Card/Card'
 
 export default function Expenses() {
   const { expenses, loading, refetch } = useExpenses()
@@ -18,7 +19,7 @@ export default function Expenses() {
       </div>
 
       {showForm && (
-        <div style={{ marginBottom: 24, padding: 16, border: '1px solid #eee', borderRadius: 12 }}>
+        <Card style={{ boxShadow: 'var(--shadow-card)', marginBottom: 24 }}>
           <AddExpenseForm
             onSuccess={() => {
               setShowForm(false)
@@ -26,50 +27,41 @@ export default function Expenses() {
             }}
             onCancel={() => setShowForm(false)}
           />
-        </div>
+        </Card>
       )}
 
       {!showForm && (
         <>
-          <div
-            style={{
-              background: 'var(--color-card)',
-              border: '1px solid rgba(0,0,0,0.08)',
-              borderRadius: 16,
-              padding: 20,
-              marginBottom: 24,
-              maxWidth: 280,
-            }}
-          >
-            <div style={{ fontSize: 13, color: '#999', marginBottom: 8 }}>Total Expenses</div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--color-text)' }}>
-              Rp{total.toLocaleString('id-ID')}
-            </div>
-          </div>
+          <Card style={{ boxShadow: 'var(--shadow-card)', marginBottom: 24, maxWidth: 280 }}>
+            <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 8 }}>Total Expenses</div>
+            <div style={{ fontSize: 24, fontWeight: 700 }}>Rp{total.toLocaleString('id-ID')}</div>
+          </Card>
 
           {loading ? (
             <p>Loading...</p>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ textAlign: 'left', borderBottom: '1px solid #eee' }}>
-                  <th style={{ padding: 8 }}>Date</th>
-                  <th style={{ padding: 8 }}>Description</th>
-                  <th style={{ padding: 8 }}>Category</th>
-                  <th style={{ padding: 8 }}>Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {expenses.map((e) => (
-                  <tr key={e.id} style={{ borderBottom: '1px solid #f5f5f5' }}>
-                    <td style={{ padding: 8 }}>{new Date(e.expense_date).toLocaleDateString('id-ID')}</td>
-                    <td style={{ padding: 8 }}>{e.description}</td>
-                    <td style={{ padding: 8 }}>{e.category}</td>
-                    <td style={{ padding: 8 }}>Rp{e.amount.toLocaleString('id-ID')}</td>
+            <Card style={{ boxShadow: 'var(--shadow-card)', padding: 0, overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>
+                    <th style={{ padding: 14 }}>Date</th>
+                    <th style={{ padding: 14 }}>Description</th>
+                    <th style={{ padding: 14 }}>Category</th>
+                    <th style={{ padding: 14 }}>Amount</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {expenses.map((e) => (
+                    <tr key={e.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                      <td style={{ padding: 14 }}>{new Date(e.expense_date).toLocaleDateString('id-ID')}</td>
+                      <td style={{ padding: 14 }}>{e.description}</td>
+                      <td style={{ padding: 14 }}>{e.category}</td>
+                      <td style={{ padding: 14 }}>Rp{e.amount.toLocaleString('id-ID')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Card>
           )}
         </>
       )}

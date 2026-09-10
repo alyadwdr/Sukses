@@ -9,10 +9,7 @@ import {
   BarChart3,
   Bell,
   Settings as SettingsIcon,
-  Moon,
-  Sun,
 } from 'lucide-react'
-import { useTheme } from '@/context/ThemeContext'
 import { useNotifications } from '@/features/notifications/useNotifications'
 
 const menuItems = [
@@ -28,7 +25,6 @@ const menuItems = [
 ]
 
 export default function Sidebar() {
-  const { theme, toggleTheme } = useTheme()
   const { notifications } = useNotifications()
 
   return (
@@ -38,9 +34,6 @@ export default function Sidebar() {
         padding: '20px 16px',
         background: 'var(--color-card)',
         borderRight: '1px solid var(--color-border)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
       }}
     >
       <div>
@@ -87,24 +80,6 @@ export default function Sidebar() {
           })}
         </nav>
       </div>
-
-      <button
-        onClick={toggleTheme}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '10px 12px',
-          borderRadius: 10,
-          border: '1px solid var(--color-border)',
-          background: 'transparent',
-          color: 'var(--color-text)',
-          cursor: 'pointer',
-        }}
-      >
-        {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
-        {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
-      </button>
     </aside>
   )
 }

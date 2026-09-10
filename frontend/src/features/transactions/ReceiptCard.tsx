@@ -9,7 +9,7 @@ export default function ReceiptCard({ transaction }: Props) {
   const totalItems = transaction.transaction_items.reduce((sum, item) => sum + item.quantity, 0)
 
   return (
-    <Card style={{ boxShadow: 'var(--shadow-card)' }}>
+    <Card style={{ boxShadow: 'var(--shadow-card)', background: 'var(--color-card)' }}>
       <div style={{ fontWeight: 600 }}>{transaction.trx_number}</div>
       <div style={{ color: 'var(--color-text-muted)', fontSize: 13, marginBottom: 12 }}>
         {new Date(transaction.created_at).toLocaleDateString('id-ID', {

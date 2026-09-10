@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useProducts } from '@/features/products/useProducts'
 import AddProductForm from '@/features/products/AddProductForm'
 import PageHeader from '@/components/PageHeader/PageHeader'
+import Card from '@/components/Card/Card'
 
 export default function Products() {
   const { products, loading, refetch } = useProducts()
@@ -19,7 +20,7 @@ export default function Products() {
       />
 
       {showForm && (
-        <div style={{ marginBottom: 24, padding: 16, border: '1px solid #eee', borderRadius: 12 }}>
+        <Card style={{ boxShadow: 'var(--shadow-card)', marginBottom: 24 }}>
           <AddProductForm
             onSuccess={() => {
               setShowForm(false)
@@ -27,36 +28,38 @@ export default function Products() {
             }}
             onCancel={() => setShowForm(false)}
           />
-        </div>
+        </Card>
       )}
 
       {loading ? (
         <p>Loading...</p>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '1px solid #eee' }}>
-              <th style={{ padding: 8 }}>Product</th>
-              <th style={{ padding: 8 }}>Category</th>
-              <th style={{ padding: 8 }}>Buy Price</th>
-              <th style={{ padding: 8 }}>Sell Price</th>
-              <th style={{ padding: 8 }}>Stock</th>
-              <th style={{ padding: 8 }}>Unit</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((p) => (
-              <tr key={p.id} style={{ borderBottom: '1px solid #f5f5f5' }}>
-                <td style={{ padding: 8 }}>{p.name}</td>
-                <td style={{ padding: 8, textTransform: 'capitalize' }}>{p.category}</td>
-                <td style={{ padding: 8 }}>Rp{p.purchase_price.toLocaleString('id-ID')}</td>
-                <td style={{ padding: 8 }}>Rp{p.selling_price.toLocaleString('id-ID')}</td>
-                <td style={{ padding: 8 }}>{p.stock}</td>
-                <td style={{ padding: 8 }}>{p.unit}</td>
+        <Card style={{ boxShadow: 'var(--shadow-card)', padding: 0, overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>
+                <th style={{ padding: 14 }}>Product</th>
+                <th style={{ padding: 14 }}>Category</th>
+                <th style={{ padding: 14 }}>Buy Price</th>
+                <th style={{ padding: 14 }}>Sell Price</th>
+                <th style={{ padding: 14 }}>Stock</th>
+                <th style={{ padding: 14 }}>Unit</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {products.map((p) => (
+                <tr key={p.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                  <td style={{ padding: 14 }}>{p.name}</td>
+                  <td style={{ padding: 14, textTransform: 'capitalize' }}>{p.category}</td>
+                  <td style={{ padding: 14 }}>Rp{p.purchase_price.toLocaleString('id-ID')}</td>
+                  <td style={{ padding: 14 }}>Rp{p.selling_price.toLocaleString('id-ID')}</td>
+                  <td style={{ padding: 14 }}>{p.stock}</td>
+                  <td style={{ padding: 14 }}>{p.unit}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
       )}
     </div>
   )
