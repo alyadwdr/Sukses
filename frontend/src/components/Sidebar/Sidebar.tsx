@@ -1,56 +1,109 @@
 import { NavLink } from 'react-router-dom'
+import {
+  LayoutDashboard,
+  Receipt,
+  Package,
+  Boxes,
+  Wallet,
+  TrendingUp,
+  BarChart3,
+  Bell,
+  Settings as SettingsIcon,
+  Moon,
+  Sun,
+} from 'lucide-react'
 import { useTheme } from '@/context/ThemeContext'
+import { useNotifications } from '@/features/notifications/useNotifications'
 
 const menuItems = [
-  { label: 'Dashboard', path: '/' },
-  { label: 'Transactions', path: '/transactions' },
-  { label: 'Products', path: '/products' },
-  { label: 'Inventory', path: '/inventory' },
-  { label: 'Expenses', path: '/expenses' },
-  { label: 'Income', path: '/income' },
-  { label: 'Reports', path: '/reports' },
-  { label: 'Notifications', path: '/notifications' },
-  { label: 'Settings', path: '/settings' },
+  { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+  { label: 'Transactions', path: '/dashboard/transactions', icon: Receipt },
+  { label: 'Products', path: '/dashboard/products', icon: Package },
+  { label: 'Inventory', path: '/dashboard/inventory', icon: Boxes },
+  { label: 'Expenses', path: '/dashboard/expenses', icon: Wallet },
+  { label: 'Income', path: '/dashboard/income', icon: TrendingUp },
+  { label: 'Reports', path: '/dashboard/reports', icon: BarChart3 },
+  { label: 'Notifications', path: '/dashboard/notifications', icon: Bell },
+  { label: 'Settings', path: '/dashboard/settings', icon: SettingsIcon },
 ]
 
 export default function Sidebar() {
   const { theme, toggleTheme } = useTheme()
+  const { notifications } = useNotifications()
 
   return (
     <aside
       style={{
-        width: 220,
-        padding: '16px',
-        background: 'var(--color-card, var(--color-base))',
-        borderRight: '1px solid rgba(0,0,0,0.08)',
+        width: 240,
+        padding: '20px 16px',
+        background: 'var(--color-card)',
+        borderRight: '1px solid var(--color-border)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
       }}
     >
       <div>
-        <h2 style={{ color: 'var(--color-dark)', marginBottom: 24 }}>Sukses</h2>
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {menuItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              style={({ isActive }) => ({
-                padding: '8px 12px',
-                borderRadius: 8,
-                textDecoration: 'none',
-                color: isActive ? '#fff' : 'var(--color-dark)',
-                background: isActive ? 'var(--color-primary)' : 'transparent',
-              })}
-            >
-              {item.label}
-            </NavLink>
-          ))}
+        <h2 style={{ color: 'var(--color-text)', marginBottom: 28, paddingLeft: 8 }}>Sukses</h2>
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {menuItems.map((item) => {
+            const Icon = item.icon
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                end={item.path === '/dashboard'}
+                style={({ isActive }) => ({
+                  padding: '10px 12px',
+                  borderRadius: 10,
+                  textDecoration: 'none',
+                  color: isActive ? '#fff' : 'var(--color-text)',
+                  background: isActive ? 'var(--color-primary)' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  fontSize: 14,
+                })}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <Icon size={18} />
+                  {item.label}
+                </span>
+                {item.label === 'Notifications' && notifications.length > 0 && (
+                  <span
+                    style={{
+                      background: '#e74c3c',
+                      color: '#fff',
+                      fontSize: 11,
+                      padding: '2px 7px',
+                      borderRadius: 10,
+                    }}
+                  >
+                    {notifications.length}
+                  </span>
+                )}
+              </NavLink>
+            )
+          })}
         </nav>
       </div>
 
-      <button onClick={toggleTheme} style={{ padding: '8px 12px', borderRadius: 8 }}>
-        {theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}
+      <button
+        onClick={toggleTheme}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '10px 12px',
+          borderRadius: 10,
+          border: '1px solid var(--color-border)',
+          background: 'transparent',
+          color: 'var(--color-text)',
+          cursor: 'pointer',
+        }}
+      >
+        {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+        {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
       </button>
     </aside>
   )
