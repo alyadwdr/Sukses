@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 const categories = [
@@ -12,6 +13,16 @@ const categories = [
   'Peralatan',
   'Lainnya',
 ]
+
+const inputStyle = {
+  width: '100%',
+  padding: '12px 14px',
+  borderRadius: 10,
+  border: '1px solid var(--color-border)',
+  background: 'var(--color-bg)',
+  color: 'var(--color-text)',
+  fontFamily: 'var(--font-body)',
+}
 
 interface AddExpenseFormProps {
   onSuccess: () => void
@@ -41,48 +52,81 @@ export default function AddExpenseForm({ onSuccess, onCancel }: AddExpenseFormPr
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10, width: 320 }}>
-      <input
-        placeholder="Description"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        required
-        style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc' }}
-      />
-
-      <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc' }}>
-        {categories.map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
-      </select>
-
-      <input
-        type="number"
-        placeholder="Amount"
-        value={amount}
-        onChange={(e) => setAmount(e.target.value)}
-        required
-        style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc' }}
-      />
-
-      <input
-        type="date"
-        value={expenseDate}
-        onChange={(e) => setExpenseDate(e.target.value)}
-        required
-        style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc' }}
-      />
-
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button type="button" onClick={onCancel} style={{ padding: 8, borderRadius: 6 }}>
-          Cancel
-        </button>
-        <button type="submit" disabled={saving} style={{ padding: 8, borderRadius: 6, background: '#95B1EE', border: 'none' }}>
-          {saving ? 'Saving...' : 'Save Expense'}
+    <form onSubmit={handleSubmit}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <h2 style={{ color: 'var(--color-text)' }}>Pengeluaran Baru</h2>
+        <button
+          type="button"
+          onClick={onCancel}
+          aria-label="Tutup"
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: '50%',
+            border: '1px solid var(--color-border)',
+            background: 'var(--color-card)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          <X size={16} color="var(--color-text)" />
         </button>
       </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <input
+          placeholder="Deskripsi"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          required
+          style={inputStyle}
+        />
+
+        <select value={category} onChange={(e) => setCategory(e.target.value)} style={inputStyle}>
+          {categories.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+
+        <input
+          type="number"
+          placeholder="Jumlah (Rp)"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          required
+          style={inputStyle}
+        />
+
+        <input
+          type="date"
+          value={expenseDate}
+          onChange={(e) => setExpenseDate(e.target.value)}
+          required
+          style={inputStyle}
+        />
+      </div>
+
+      <button
+        type="submit"
+        disabled={saving}
+        style={{
+          width: '100%',
+          padding: 14,
+          borderRadius: 10,
+          border: 'none',
+          background: 'var(--color-primary)',
+          color: '#fff',
+          fontWeight: 600,
+          cursor: 'pointer',
+          marginTop: 20,
+        }}
+      >
+        {saving ? 'Menyimpan...' : 'Simpan'}
+      </button>
     </form>
   )
 }

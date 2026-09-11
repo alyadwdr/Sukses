@@ -10,6 +10,7 @@ interface ReportsData {
   totalExpenses: number
   costOfGoods: number
   grossProfit: number
+  chartData: { label: string; sales: number }[]
   bestSellers: { name: string; qty: number }[]
 }
 
@@ -64,6 +65,17 @@ export function useReportsData() {
     const totalExpenses = (expenses ?? []).reduce((sum, e) => sum + e.amount, 0)
     const grossProfit = totalSales - costOfGoods
 
+    const daysInMonth = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0).getDate()
+    const chartData = Array.from({ length: daysInMonth }).map((_, i) => {
+      const day = new Date(monthStart)
+      day.setDate(i + 1)
+      const dayStr = day.toISOString().split('T')[0]
+      const daySales = relevantTrx
+        .filter((trx) => trx.created_at.startsWith(dayStr))
+        .reduce((sum, trx) => sum + trx.total, 0)
+      return { label: String(i + 1), sales: daySales }
+    })
+
     const productSales: Record<string, number> = {}
     relevantTrx.forEach((trx) => {
       trx.transaction_items.forEach((item: any) => {
@@ -83,6 +95,7 @@ export function useReportsData() {
       totalExpenses,
       costOfGoods,
       grossProfit,
+      chartData,
       bestSellers,
     })
     setLoading(false)

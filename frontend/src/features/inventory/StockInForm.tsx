@@ -5,10 +5,18 @@ import type { Product } from '@/types/product'
 interface StockInFormProps {
   products: Product[]
   onSuccess: () => void
-  onCancel: () => void
 }
 
-export default function StockInForm({ products, onSuccess, onCancel }: StockInFormProps) {
+const inputStyle = {
+  padding: '12px 14px',
+  borderRadius: 10,
+  border: '1px solid var(--color-border)',
+  background: 'var(--color-bg)',
+  color: 'var(--color-text)',
+  fontFamily: 'var(--font-body)',
+}
+
+export default function StockInForm({ products, onSuccess }: StockInFormProps) {
   const [productId, setProductId] = useState('')
   const [quantity, setQuantity] = useState('')
   const [saving, setSaving] = useState(false)
@@ -33,54 +41,58 @@ export default function StockInForm({ products, onSuccess, onCancel }: StockInFo
     })
 
     setSaving(false)
+    setProductId('')
+    setQuantity('')
     onSuccess()
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10, width: 320 }}>
-      <select
-        value={productId}
-        onChange={(e) => setProductId(e.target.value)}
-        required
-        style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc' }}
-      >
-        <option value="">Select product...</option>
-        {products.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.name}
-          </option>
-        ))}
-      </select>
-
-      {selectedProduct && (
-        <div style={{ fontSize: 14, color: '#666' }}>
-          Current Stock: {selectedProduct.stock} {selectedProduct.unit}
-        </div>
-      )}
-
-      <input
-        type="number"
-        placeholder="Quantity added"
-        value={quantity}
-        onChange={(e) => setQuantity(e.target.value)}
-        required
-        style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc' }}
-      />
-
-      {selectedProduct && quantity && (
-        <div style={{ fontSize: 14, fontWeight: 600 }}>
-          New Stock: {newStock} {selectedProduct.unit}
-        </div>
-      )}
-
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button type="button" onClick={onCancel} style={{ padding: 8, borderRadius: 6 }}>
-          Cancel
-        </button>
-        <button type="submit" disabled={saving} style={{ padding: 8, borderRadius: 6, background: '#95B1EE', border: 'none' }}>
-          {saving ? 'Saving...' : 'Add Stock'}
+    <form onSubmit={handleSubmit}>
+      <div style={{ display: 'flex', gap: 12 }}>
+        <select
+          value={productId}
+          onChange={(e) => setProductId(e.target.value)}
+          required
+          style={{ ...inputStyle, flex: 2 }}
+        >
+          <option value="">Pilih Produk</option>
+          {products.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+        <input
+          type="number"
+          placeholder="Qty"
+          value={quantity}
+          onChange={(e) => setQuantity(e.target.value)}
+          required
+          style={{ ...inputStyle, flex: 1 }}
+        />
+        <button
+          type="submit"
+          disabled={saving}
+          style={{
+            padding: '12px 28px',
+            borderRadius: 10,
+            border: 'none',
+            background: 'var(--color-primary)',
+            color: '#fff',
+            fontWeight: 600,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {saving ? 'Menyimpan...' : 'Tambah'}
         </button>
       </div>
+
+      {selectedProduct && quantity && (
+        <div style={{ marginTop: 10, fontSize: 13, color: 'var(--color-text-muted)' }}>
+          Stok saat ini: {selectedProduct.stock} {selectedProduct.unit} → Stok baru: {newStock} {selectedProduct.unit}
+        </div>
+      )}
     </form>
   )
 }

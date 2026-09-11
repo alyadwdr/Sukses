@@ -5,85 +5,58 @@ import { useTransactions } from '@/features/transactions/useTransactions'
 import AllTransactionsTable from '@/features/transactions/AllTransactionsTable'
 import ReceiptCard from '@/features/transactions/ReceiptCard'
 import Card from '@/components/Card/Card'
-import { useBusinessFilter } from '@/context/BusinessFilterContext'
+import BusinessFilterTabs from '@/components/BusinessFilterTabs/BusinessFilterTabs'
 
 type ViewMode = 'all' | 'receipts'
-
-const filterOptions: { label: string; value: 'all' | 'plastik' | 'sembako' }[] = [
-  { label: 'Sembako & Plastik', value: 'all' },
-  { label: 'Plastik', value: 'plastik' },
-  { label: 'Sembako', value: 'sembako' },
-]
 
 export default function Transactions() {
   const [showForm, setShowForm] = useState(false)
   const [view, setView] = useState<ViewMode>('all')
   const { transactions, loading, refetch } = useTransactions()
-  const { filter, setFilter } = useBusinessFilter()
 
   return (
-    <Card style={{ boxShadow: 'var(--shadow-card)', minHeight: '80vh' }}>
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <h1 style={{ color: 'var(--color-text)' }}>Transaksi</h1>
+        {!showForm && (
+          <button
+            onClick={() => setShowForm(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '10px 20px',
+              borderRadius: 24,
+              background: 'var(--color-primary)',
+              color: '#fff',
+              border: 'none',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            <Plus size={16} /> Transaksi Baru
+          </button>
+        )}
+      </div>
+
+      {!showForm && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+          <BusinessFilterTabs />
+        </div>
+      )}
+
       {showForm ? (
-        <NewTransactionForm
-          onSuccess={() => {
-            setShowForm(false)
-            refetch()
-          }}
-          onCancel={() => setShowForm(false)}
-        />
+        <Card style={{ boxShadow: 'var(--shadow-card)', minHeight: '70vh' }}>
+          <NewTransactionForm
+            onSuccess={() => {
+              setShowForm(false)
+              refetch()
+            }}
+            onCancel={() => setShowForm(false)}
+          />
+        </Card>
       ) : (
-        <>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-            <h1 style={{ color: 'var(--color-text)' }}>Transactions</h1>
-            <button
-              onClick={() => setShowForm(true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '10px 20px',
-                borderRadius: 24,
-                background: 'var(--color-primary)',
-                color: '#fff',
-                border: 'none',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              <Plus size={16} /> New Transaction
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-            <div
-              style={{
-                display: 'inline-flex',
-                padding: 4,
-                borderRadius: 20,
-                background: 'var(--color-bg)',
-                border: '1px solid var(--color-border)',
-              }}
-            >
-              {filterOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setFilter(opt.value)}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: 16,
-                    border: 'none',
-                    cursor: 'pointer',
-                    background: filter === opt.value ? 'var(--color-primary)' : 'transparent',
-                    color: filter === opt.value ? '#fff' : 'var(--color-text)',
-                    fontWeight: filter === opt.value ? 600 : 400,
-                  }}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
+        <Card style={{ boxShadow: 'var(--shadow-card)', minHeight: '70vh' }}>
           <div style={{ display: 'flex', gap: 24, borderBottom: '1px solid var(--color-border)', marginBottom: 20 }}>
             <button
               onClick={() => setView('all')}
@@ -98,7 +71,7 @@ export default function Transactions() {
                 marginBottom: -1,
               }}
             >
-              All Transactions
+              Semua Transaksi
             </button>
             <button
               onClick={() => setView('receipts')}
@@ -113,7 +86,7 @@ export default function Transactions() {
                 marginBottom: -1,
               }}
             >
-              Receipts
+              Struk
             </button>
           </div>
 
@@ -128,8 +101,8 @@ export default function Transactions() {
               ))}
             </div>
           )}
-        </>
+        </Card>
       )}
-    </Card>
+    </div>
   )
 }

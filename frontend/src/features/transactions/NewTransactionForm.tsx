@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Search, X, List, Grid2x2, LayoutGrid, ChevronDown } from 'lucide-react'
+import { Search, X, List, Grid2x2, LayoutGrid, ChevronDown, Banknote, QrCode } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import type { Product } from '@/types/product'
 
@@ -16,10 +16,10 @@ interface NewTransactionFormProps {
 type ViewMode = 'list' | 'large' | 'medium' | 'small'
 
 const viewOptions: { value: ViewMode; label: string; icon: React.ReactNode }[] = [
-  { value: 'list', label: 'List', icon: <List size={15} /> },
-  { value: 'large', label: 'Large icons', icon: <Grid2x2 size={15} /> },
-  { value: 'medium', label: 'Medium icons', icon: <LayoutGrid size={15} /> },
-  { value: 'small', label: 'Small icons', icon: <LayoutGrid size={13} /> },
+  { value: 'list', label: 'Daftar', icon: <List size={15} /> },
+  { value: 'large', label: 'Ikon Besar', icon: <Grid2x2 size={15} /> },
+  { value: 'medium', label: 'Ikon Sedang', icon: <LayoutGrid size={15} /> },
+  { value: 'small', label: 'Ikon Kecil', icon: <LayoutGrid size={13} /> },
 ]
 
 const sizeConfig: Record<Exclude<ViewMode, 'list'>, { minWidth: number; avatar: number; font: number }> = {
@@ -32,7 +32,9 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
   const [products, setProducts] = useState<Product[]>([])
   const [search, setSearch] = useState('')
   const [cart, setCart] = useState<CartItem[]>([])
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'qris' | 'transfer'>('cash')
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'qris'>('cash')
+  const [cashReceived, setCashReceived] = useState('')
+  const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [viewMenuOpen, setViewMenuOpen] = useState(false)
@@ -73,16 +75,24 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
   }
 
   const total = cart.reduce((sum, item) => sum + item.product.selling_price * item.quantity, 0)
+  const change = Number(cashReceived || 0) - total
+  const cashInvalid = paymentMethod === 'cash' && (cashReceived === '' || Number(cashReceived) < total)
 
   async function handleCompleteSale() {
-    if (cart.length === 0) return
+    if (cart.length === 0 || cashInvalid) return
     setSaving(true)
 
     const trxNumber = `TRX-${Date.now()}`
 
     const { data: trx, error: trxError } = await supabase
       .from('transactions')
-      .insert({ trx_number: trxNumber, payment_method: paymentMethod, total })
+      .insert({
+        trx_number: trxNumber,
+        payment_method: paymentMethod,
+        total,
+        notes: notes || null,
+        cash_received: paymentMethod === 'cash' ? Number(cashReceived) : null,
+      })
       .select()
       .single()
 
@@ -121,10 +131,10 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h2 style={{ color: 'var(--color-text)' }}>New Transaction</h2>
+        <h2 style={{ color: 'var(--color-text)' }}>Transaksi Baru</h2>
         <button
           onClick={onCancel}
-          aria-label="Close"
+          aria-label="Tutup"
           style={{
             width: 36,
             height: 36,
@@ -151,7 +161,7 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
                 style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }}
               />
               <input
-                placeholder="Search product..."
+                placeholder="Cari produk..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 style={{
@@ -331,8 +341,8 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
             padding: 20,
           }}
         >
-          <h3 style={{ marginBottom: 16 }}>Current Transaction</h3>
-          {cart.length === 0 && <p style={{ color: 'var(--color-text-muted)' }}>No items yet</p>}
+          <h3 style={{ marginBottom: 16 }}>Transaksi Saat Ini</h3>
+          {cart.length === 0 && <p style={{ color: 'var(--color-text-muted)' }}>Belum ada item</p>}
           {cart.map((item) => (
             <div key={item.product.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, alignItems: 'center' }}>
               <span>{item.product.name}</span>
@@ -363,40 +373,120 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
             <span>Rp{total.toLocaleString('id-ID')}</span>
           </div>
 
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-            {(['cash', 'qris', 'transfer'] as const).map((method) => (
-              <button
-                key={method}
-                onClick={() => setPaymentMethod(method)}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <button
+              onClick={() => setPaymentMethod('cash')}
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                padding: '10px 0',
+                borderRadius: 10,
+                border: '1px solid var(--color-border)',
+                background: paymentMethod === 'cash' ? 'var(--color-primary)' : 'var(--color-card)',
+                color: paymentMethod === 'cash' ? '#fff' : 'var(--color-text)',
+                cursor: 'pointer',
+              }}
+            >
+              <Banknote size={16} /> Tunai
+            </button>
+            <button
+              onClick={() => setPaymentMethod('qris')}
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                padding: '10px 0',
+                borderRadius: 10,
+                border: '1px solid var(--color-border)',
+                background: paymentMethod === 'qris' ? 'var(--color-primary)' : 'var(--color-card)',
+                color: paymentMethod === 'qris' ? '#fff' : 'var(--color-text)',
+                cursor: 'pointer',
+              }}
+            >
+              <QrCode size={16} /> QRIS
+            </button>
+          </div>
+
+          {paymentMethod === 'cash' && (
+            <div style={{ marginBottom: 12 }}>
+              <input
+                type="number"
+                placeholder="Uang diterima dari pembeli"
+                value={cashReceived}
+                onChange={(e) => setCashReceived(e.target.value)}
                 style={{
-                  flex: 1,
-                  padding: '8px 0',
+                  width: '100%',
+                  padding: '10px 12px',
                   borderRadius: 10,
                   border: '1px solid var(--color-border)',
-                  background: paymentMethod === method ? 'var(--color-primary)' : 'var(--color-card)',
-                  color: paymentMethod === method ? '#fff' : 'var(--color-text)',
-                  textTransform: 'capitalize',
-                  cursor: 'pointer',
+                  background: 'var(--color-card)',
+                  color: 'var(--color-text)',
+                  marginBottom: 8,
                 }}
-              >
-                {method}
-              </button>
-            ))}
-          </div>
+              />
+              {cashReceived !== '' && (
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: change < 0 ? '#c0392b' : 'var(--color-text)',
+                  }}
+                >
+                  <span>Kembalian</span>
+                  <span>Rp{change.toLocaleString('id-ID')}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <textarea
+            placeholder="Catatan (opsional)"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={2}
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              borderRadius: 10,
+              border: '1px solid var(--color-border)',
+              background: 'var(--color-card)',
+              color: 'var(--color-text)',
+              marginBottom: 16,
+              resize: 'none',
+              fontFamily: 'var(--font-body)',
+            }}
+          />
 
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               onClick={onCancel}
               style={{ flex: 1, padding: 12, borderRadius: 10, border: '1px solid var(--color-border)', background: 'var(--color-card)', color: 'var(--color-text)', cursor: 'pointer' }}
             >
-              Cancel
+              Batal
             </button>
             <button
               onClick={handleCompleteSale}
-              disabled={saving || cart.length === 0}
-              style={{ flex: 2, padding: 12, borderRadius: 10, background: 'var(--color-primary)', color: '#fff', border: 'none', fontWeight: 600, cursor: 'pointer' }}
+              disabled={saving || cart.length === 0 || cashInvalid}
+              style={{
+                flex: 2,
+                padding: 12,
+                borderRadius: 10,
+                background: 'var(--color-primary)',
+                color: '#fff',
+                border: 'none',
+                fontWeight: 600,
+                cursor: saving || cart.length === 0 || cashInvalid ? 'not-allowed' : 'pointer',
+                opacity: saving || cart.length === 0 || cashInvalid ? 0.6 : 1,
+              }}
             >
-              {saving ? 'Saving...' : 'Complete Sale'}
+              {saving ? 'Menyimpan...' : 'Selesaikan Transaksi'}
             </button>
           </div>
         </div>

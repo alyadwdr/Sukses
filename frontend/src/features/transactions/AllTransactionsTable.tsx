@@ -29,12 +29,12 @@ export default function AllTransactionsTable({ transactions }: Props) {
     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
       <thead>
         <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>
-          <th style={{ padding: '10px 14px', fontSize: 12, letterSpacing: 0.5, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Date</th>
-          <th style={{ padding: '10px 14px', fontSize: 12, letterSpacing: 0.5, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Receipt</th>
-          <th style={{ padding: '10px 14px', fontSize: 12, letterSpacing: 0.5, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Product</th>
-          <th style={{ padding: '10px 14px', fontSize: 12, letterSpacing: 0.5, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Category</th>
-          <th style={{ padding: '10px 14px', fontSize: 12, letterSpacing: 0.5, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Qty</th>
-          <th style={{ padding: '10px 14px', fontSize: 12, letterSpacing: 0.5, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Price</th>
+          <th style={{ padding: '10px 14px', fontSize: 12, letterSpacing: 0.5, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Tanggal</th>
+          <th style={{ padding: '10px 14px', fontSize: 12, letterSpacing: 0.5, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>No. Struk</th>
+          <th style={{ padding: '10px 14px', fontSize: 12, letterSpacing: 0.5, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Produk</th>
+          <th style={{ padding: '10px 14px', fontSize: 12, letterSpacing: 0.5, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Kategori</th>
+          <th style={{ padding: '10px 14px', fontSize: 12, letterSpacing: 0.5, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Jumlah</th>
+          <th style={{ padding: '10px 14px', fontSize: 12, letterSpacing: 0.5, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Harga</th>
           <th style={{ padding: '10px 14px', fontSize: 12, letterSpacing: 0.5, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Total</th>
         </tr>
       </thead>

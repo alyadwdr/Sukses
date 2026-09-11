@@ -27,14 +27,14 @@ export default function ReceiptCard({ transaction }: Props) {
       ))}
 
       <div style={{ borderTop: '1px solid var(--color-border)', marginTop: 12, paddingTop: 12 }}>
-        <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{totalItems} Items</div>
+        <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{totalItems} Item</div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, marginTop: 4 }}>
           <span>Total</span>
           <span>Rp{transaction.total.toLocaleString('id-ID')}</span>
         </div>
-        <div style={{ fontSize: 13, color: 'var(--color-text-muted)', textTransform: 'capitalize', marginTop: 4 }}>
-          {transaction.payment_method}
-        </div>
+        <div style={{ fontSize: 13, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginTop: 4 }}>
+  {transaction.payment_method === 'cash' ? 'Tunai' : transaction.payment_method}
+</div>
       </div>
     </Card>
   )
