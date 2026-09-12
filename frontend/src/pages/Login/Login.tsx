@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Mail, Lock, Store, Moon, Sun } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/context/ThemeContext'
+import { useBusiness } from '@/context/BusinessContext'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -11,6 +12,7 @@ export default function Login() {
   const [saving, setSaving] = useState(false)
   const navigate = useNavigate()
   const { theme, toggleTheme } = useTheme()
+  const { business } = useBusiness()
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -98,15 +100,7 @@ export default function Login() {
             <Store size={26} color="#fff" />
           </div>
 
-          <h1
-            style={{
-              fontSize: 36,
-              color: 'var(--color-text)',
-              marginBottom: 12,
-            }}
-          >
-            Sukses
-          </h1>
+          <h1 style={{ fontSize: 36, color: 'var(--color-text)', marginBottom: 12 }}>{business?.name ?? 'Sukses'}</h1>
 
           <p
             style={{

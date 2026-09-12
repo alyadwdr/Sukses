@@ -20,11 +20,24 @@ export default function ReceiptCard({ transaction }: Props) {
       </div>
 
       {transaction.transaction_items.map((item) => (
-        <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 4 }}>
-          <span>{item.products.name}</span>
-          <span>{item.quantity}</span>
-        </div>
-      ))}
+  <div
+    key={item.id}
+    style={{
+      display: 'grid',
+      gridTemplateColumns: '1fr auto auto',
+      gap: 10,
+      fontSize: 14,
+      marginBottom: 6,
+      alignItems: 'baseline',
+    }}
+  >
+    <span>{item.products.name}</span>
+    <span style={{ color: 'var(--color-text-muted)', fontSize: 12 }}>
+      {item.quantity} x Rp{item.price_at_sale.toLocaleString('id-ID')}
+    </span>
+    <span style={{ fontWeight: 600, textAlign: 'right' }}>Rp{item.subtotal.toLocaleString('id-ID')}</span>
+  </div>
+))}
 
       <div style={{ borderTop: '1px solid var(--color-border)', marginTop: 12, paddingTop: 12 }}>
         <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{totalItems} Item</div>

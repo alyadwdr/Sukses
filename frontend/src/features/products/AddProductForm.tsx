@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import ImageCropUpload from '@/components/ImageCropUpload/ImageCropUpload'
 
 interface AddProductFormProps {
   onSuccess: () => void
@@ -26,12 +27,15 @@ export default function AddProductForm({ onSuccess, onCancel }: AddProductFormPr
   const [stock, setStock] = useState('')
   const [minStock, setMinStock] = useState('')
   const [saving, setSaving] = useState(false)
+  const [image, setImage] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setSaving(true)
+  e.preventDefault()
+  setSaving(true)
 
-    const { error } = await supabase.from('products').insert({
+  const { data: inserted, error } = await supabase
+    .from('products')
+    .insert({
       name,
       category,
       purchase_price: Number(purchasePrice),
@@ -40,10 +44,25 @@ export default function AddProductForm({ onSuccess, onCancel }: AddProductFormPr
       stock: Number(stock),
       min_stock: Number(minStock),
     })
+    .select()
+    .single()
 
-    setSaving(false)
-    if (!error) onSuccess()
+  if (!error && inserted && image) {
+    const res = await fetch(image)
+    const blob = await res.blob()
+    const path = `${inserted.id}-${Date.now()}.jpg`
+    const { error: uploadError } = await supabase.storage.from('product-images').upload(path, blob, {
+      contentType: 'image/jpeg',
+    })
+    if (!uploadError) {
+      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path)
+      await supabase.from('products').update({ image_url: urlData.publicUrl }).eq('id', inserted.id)
+    }
   }
+
+  setSaving(false)
+  if (!error) onSuccess()
+}
 
   return (
     <form onSubmit={handleSubmit}>
@@ -67,6 +86,10 @@ export default function AddProductForm({ onSuccess, onCancel }: AddProductFormPr
         >
           <X size={16} color="var(--color-text)" />
         </button>
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <ImageCropUpload value={image} onChange={setImage} />
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

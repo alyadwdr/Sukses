@@ -1,10 +1,16 @@
 import { useState } from 'react'
-import { Plus, Search, List, Grid2x2, LayoutGrid, ChevronDown } from 'lucide-react'
+import { Plus, Search, List, Grid2x2, LayoutGrid, ChevronDown, Pencil, Trash2, Info } from 'lucide-react'
 import { useProducts } from '@/features/products/useProducts'
 import AddProductForm from '@/features/products/AddProductForm'
+import EditProductForm from '@/features/products/EditProductForm'
+import PriceHistoryModal from '@/features/products/PriceHistoryModal'
 import Card from '@/components/Card/Card'
 import Modal from '@/components/Modal/Modal'
-import BusinessFilterTabs from '@/components/BusinessFilterTabs/BusinessFilterTabs'
+import ConfirmModal from '@/components/ConfirmModal/ConfirmModal'
+import CategoryBadge from '@/components/CategoryBadge/CategoryBadge'
+import PageTopBar from '@/components/PageTopBar/PageTopBar'
+import { supabase } from '@/lib/supabase'
+import type { Product } from '@/types/product'
 
 type ViewMode = 'list' | 'large' | 'medium' | 'small'
 
@@ -21,9 +27,24 @@ const sizeConfig: Record<Exclude<ViewMode, 'list'>, { minWidth: number; avatar: 
   small: { minWidth: 100, avatar: 40, font: 11 },
 }
 
+const iconButtonStyle = {
+  width: 30,
+  height: 30,
+  borderRadius: 8,
+  border: '1px solid var(--color-border)',
+  background: 'var(--color-card)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+}
+
 export default function Products() {
   const { products, loading, refetch } = useProducts()
-  const [showForm, setShowForm] = useState(false)
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null)
+  const [historyProduct, setHistoryProduct] = useState<Product | null>(null)
   const [search, setSearch] = useState('')
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [viewMenuOpen, setViewMenuOpen] = useState(false)
@@ -32,32 +53,37 @@ export default function Products() {
     p.name.toLowerCase().includes(search.toLowerCase())
   )
 
+  async function handleDelete() {
+    if (!deletingProduct) return
+    await supabase.from('products').delete().eq('id', deletingProduct.id)
+    setDeletingProduct(null)
+    refetch()
+  }
+
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1 style={{ color: 'var(--color-text)' }}>Produk</h1>
-        <button
-          onClick={() => setShowForm(true)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '10px 20px',
-            borderRadius: 24,
-            background: 'var(--color-primary)',
-            color: '#fff',
-            border: 'none',
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          <Plus size={16} /> Tambah Produk
-        </button>
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-        <BusinessFilterTabs />
-      </div>
+      <PageTopBar
+        title="Produk"
+        action={
+          <button
+            onClick={() => setShowAddForm(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '10px 20px',
+              borderRadius: 24,
+              background: 'var(--color-primary)',
+              color: '#fff',
+              border: 'none',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            <Plus size={16} /> Tambah Produk
+          </button>
+        }
+      />
 
       <Card style={{ boxShadow: 'var(--shadow-card)', minHeight: '70vh' }}>
         <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
@@ -154,23 +180,41 @@ export default function Products() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>
-                <th style={{ padding: '10px 14px', fontSize: 12, letterSpacing: 0.5, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Produk</th>
-                <th style={{ padding: '10px 14px', fontSize: 12, letterSpacing: 0.5, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Kategori</th>
-                <th style={{ padding: '10px 14px', fontSize: 12, letterSpacing: 0.5, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Harga Beli</th>
-                <th style={{ padding: '10px 14px', fontSize: 12, letterSpacing: 0.5, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Harga Jual</th>
-                <th style={{ padding: '10px 14px', fontSize: 12, letterSpacing: 0.5, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Stok</th>
-                <th style={{ padding: '10px 14px', fontSize: 12, letterSpacing: 0.5, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Satuan</th>
+                <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>No.</th>
+                <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Produk</th>
+                <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Kategori</th>
+                <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Harga Beli</th>
+                <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Harga Jual</th>
+                <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Stok</th>
+                <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Satuan</th>
+                <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Aksi</th>
               </tr>
             </thead>
             <tbody>
-              {filteredProducts.map((p) => (
+              {filteredProducts.map((p, i) => (
                 <tr key={p.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  <td style={{ padding: 14, color: 'var(--color-primary)', fontWeight: 600 }}>{p.name}</td>
-                  <td style={{ padding: 14, textTransform: 'capitalize' }}>{p.category}</td>
+                  <td style={{ padding: 14, color: 'var(--color-text-muted)' }}>{i + 1}</td>
+                  <td style={{ padding: 14, fontWeight: 600 }}>{p.name}</td>
+                  <td style={{ padding: 14 }}>
+                    <CategoryBadge category={p.category} />
+                  </td>
                   <td style={{ padding: 14 }}>Rp{p.purchase_price.toLocaleString('id-ID')}</td>
                   <td style={{ padding: 14 }}>Rp{p.selling_price.toLocaleString('id-ID')}</td>
                   <td style={{ padding: 14 }}>{p.stock}</td>
                   <td style={{ padding: 14 }}>{p.unit}</td>
+                  <td style={{ padding: 14 }}>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={() => setHistoryProduct(p)} aria-label="Riwayat harga" style={iconButtonStyle}>
+                        <Info size={14} color="var(--color-text-muted)" />
+                      </button>
+                      <button onClick={() => setEditingProduct(p)} aria-label="Edit" style={iconButtonStyle}>
+                        <Pencil size={14} color="var(--color-primary)" />
+                      </button>
+                      <button onClick={() => setDeletingProduct(p)} aria-label="Hapus" style={iconButtonStyle}>
+                        <Trash2 size={14} color="#c0392b" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -191,8 +235,17 @@ export default function Products() {
                   borderRadius: 12,
                   border: '1px solid var(--color-border)',
                   textAlign: 'center',
+                  position: 'relative',
                 }}
               >
+                <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 4 }}>
+                  <button onClick={() => setEditingProduct(p)} aria-label="Edit" style={{ ...iconButtonStyle, width: 24, height: 24 }}>
+                    <Pencil size={11} color="var(--color-primary)" />
+                  </button>
+                  <button onClick={() => setDeletingProduct(p)} aria-label="Hapus" style={{ ...iconButtonStyle, width: 24, height: 24 }}>
+                    <Trash2 size={11} color="#c0392b" />
+                  </button>
+                </div>
                 <div
                   style={{
                     width: sizeConfig[viewMode].avatar,
@@ -228,16 +281,46 @@ export default function Products() {
         )}
       </Card>
 
-      {showForm && (
-        <Modal onClose={() => setShowForm(false)}>
+      {showAddForm && (
+        <Modal onClose={() => setShowAddForm(false)}>
           <AddProductForm
             onSuccess={() => {
-              setShowForm(false)
+              setShowAddForm(false)
               refetch()
             }}
-            onCancel={() => setShowForm(false)}
+            onCancel={() => setShowAddForm(false)}
           />
         </Modal>
+      )}
+
+      {editingProduct && (
+        <Modal onClose={() => setEditingProduct(null)}>
+          <EditProductForm
+            product={editingProduct}
+            onSuccess={() => {
+              setEditingProduct(null)
+              refetch()
+            }}
+            onCancel={() => setEditingProduct(null)}
+          />
+        </Modal>
+      )}
+
+      {deletingProduct && (
+        <ConfirmModal
+          title="Hapus Produk"
+          description={`Yakin ingin menghapus "${deletingProduct.name}"? Tindakan ini tidak bisa dibatalkan.`}
+          onConfirm={handleDelete}
+          onCancel={() => setDeletingProduct(null)}
+        />
+      )}
+
+      {historyProduct && (
+        <PriceHistoryModal
+          productId={historyProduct.id}
+          productName={historyProduct.name}
+          onClose={() => setHistoryProduct(null)}
+        />
       )}
     </div>
   )

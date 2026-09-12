@@ -1,15 +1,26 @@
 import { useMemo, useState } from 'react'
 import { Plus } from 'lucide-react'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { useExpenses } from '@/features/expenses/useExpenses'
 import { useExpenseSummary } from '@/features/expenses/useExpenseSummary'
 import AddExpenseForm from '@/features/expenses/AddExpenseForm'
 import Card from '@/components/Card/Card'
 import Modal from '@/components/Modal/Modal'
+import PageTopBar from '@/components/PageTopBar/PageTopBar'
 
 function formatRupiah(value: number) {
   return `Rp${value.toLocaleString('id-ID')}`
 }
+
+type ChartPeriod = '7d' | '1m' | '1y'
+
+const periodOptions: { label: string; value: ChartPeriod }[] = [
+  { label: '7D', value: '7d' },
+  { label: '1M', value: '1m' },
+  { label: '1Y', value: '1y' },
+]
+
+const DONUT_COLORS = ['#95B1EE', '#E7F1A8', '#364C84', '#B9CDF3', '#F0F6C8', '#6D89C4', '#D5E28E', '#28345C', '#AFC6F0']
 
 const inputStyle = {
   width: '100%',
@@ -25,6 +36,7 @@ export default function Expenses() {
   const { expenses, loading, refetch } = useExpenses()
   const summary = useExpenseSummary(expenses)
   const [showForm, setShowForm] = useState(false)
+  const [period, setPeriod] = useState<ChartPeriod>('7d')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [appliedFrom, setAppliedFrom] = useState('')
@@ -38,13 +50,47 @@ export default function Expenses() {
     })
   }, [expenses, appliedFrom, appliedTo])
 
-  const chartData = useMemo(() => {
+  const donutData = useMemo(() => {
     const byCategory: Record<string, number> = {}
     filteredExpenses.forEach((e) => {
       byCategory[e.category] = (byCategory[e.category] ?? 0) + e.amount
     })
     return Object.entries(byCategory).map(([category, total]) => ({ category, total }))
   }, [filteredExpenses])
+
+  const totalChartData = useMemo(() => {
+    const now = new Date()
+
+    if (period === '7d') {
+      return Array.from({ length: 7 }).map((_, i) => {
+        const day = new Date()
+        day.setDate(day.getDate() - 6 + i)
+        const dayStr = day.toISOString().split('T')[0]
+        const total = expenses.filter((e) => e.expense_date === dayStr).reduce((s, e) => s + e.amount, 0)
+        return { label: day.toLocaleDateString('id-ID', { weekday: 'short' }), total }
+      })
+    }
+
+    if (period === '1m') {
+      const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+      return Array.from({ length: daysInMonth }).map((_, i) => {
+        const dayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`
+        const total = expenses.filter((e) => e.expense_date === dayStr).reduce((s, e) => s + e.amount, 0)
+        return { label: String(i + 1), total }
+      })
+    }
+
+    return Array.from({ length: 12 }).map((_, i) => {
+      const total = expenses
+        .filter((e) => {
+          const d = new Date(e.expense_date)
+          return d.getMonth() === i && d.getFullYear() === now.getFullYear()
+        })
+        .reduce((s, e) => s + e.amount, 0)
+      const label = new Date(now.getFullYear(), i, 1).toLocaleDateString('id-ID', { month: 'short' })
+      return { label, total }
+    })
+  }, [expenses, period])
 
   function handleFilter() {
     setAppliedFrom(dateFrom)
@@ -53,28 +99,31 @@ export default function Expenses() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1 style={{ color: 'var(--color-text)' }}>Pengeluaran</h1>
-        <button
-          onClick={() => setShowForm(true)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '10px 20px',
-            borderRadius: 24,
-            background: 'var(--color-primary)',
-            color: '#fff',
-            border: 'none',
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          <Plus size={16} /> Tambah Pengeluaran
-        </button>
-      </div>
+      <PageTopBar
+        title="Pengeluaran"
+        showFilter={false}
+        action={
+          <button
+            onClick={() => setShowForm(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '10px 20px',
+              borderRadius: 24,
+              background: 'var(--color-primary)',
+              color: '#fff',
+              border: 'none',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            <Plus size={16} /> Tambah Pengeluaran
+          </button>
+        }
+      />
 
-      <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', marginBottom: 20 }}>
         <div style={{ width: 280, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', gap: 16 }}>
             <Card style={{ boxShadow: 'var(--shadow-card)', flex: 1 }}>
@@ -91,13 +140,7 @@ export default function Expenses() {
               <div style={{ fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 6 }}>Bulan Ini</div>
               <div style={{ fontSize: 18, fontWeight: 700 }}>{formatRupiah(summary.month)}</div>
             </Card>
-            <Card
-              style={{
-                boxShadow: 'var(--shadow-card)',
-                flex: 1,
-                background: 'var(--color-text)',
-              }}
-            >
+            <Card style={{ boxShadow: 'var(--shadow-card)', flex: 1, background: 'var(--color-text)' }}>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', marginBottom: 6 }}>Tahun Ini</div>
               <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-accent)' }}>{formatRupiah(summary.year)}</div>
             </Card>
@@ -110,15 +153,7 @@ export default function Expenses() {
               <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} style={inputStyle} />
               <button
                 onClick={handleFilter}
-                style={{
-                  padding: 12,
-                  borderRadius: 10,
-                  border: 'none',
-                  background: 'var(--color-text)',
-                  color: '#fff',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
+                style={{ padding: 12, borderRadius: 10, border: 'none', background: 'var(--color-text)', color: '#fff', fontWeight: 600, cursor: 'pointer' }}
               >
                 Filter Data
               </button>
@@ -127,17 +162,69 @@ export default function Expenses() {
         </div>
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <Card style={{ boxShadow: 'var(--shadow-card)' }}>
-            <h3 style={{ marginBottom: 16 }}>Grafik Total Pengeluaran</h3>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={chartData}>
-                <XAxis dataKey="category" stroke="var(--color-text-muted)" fontSize={12} />
-                <YAxis stroke="var(--color-text-muted)" fontSize={12} />
-                <Tooltip formatter={(value) => formatRupiah(Number(value))} />
-                <Bar dataKey="total" fill="#95B1EE" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </Card>
+          <div style={{ display: 'flex', gap: 20 }}>
+            <Card style={{ boxShadow: 'var(--shadow-card)', flex: 2 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h3>Total Pengeluaran</h3>
+                <div style={{ display: 'inline-flex', padding: 4, borderRadius: 20, background: 'var(--color-bg)' }}>
+                  {periodOptions.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setPeriod(opt.value)}
+                      style={{
+                        padding: '4px 14px',
+                        borderRadius: 20,
+                        border: 'none',
+                        fontSize: 13,
+                        cursor: 'pointer',
+                        background: period === opt.value ? 'var(--color-primary)' : 'transparent',
+                        color: period === opt.value ? '#fff' : 'var(--color-text)',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={totalChartData}>
+                  <XAxis dataKey="label" stroke="var(--color-text-muted)" fontSize={11} />
+                  <YAxis stroke="var(--color-text-muted)" fontSize={12} />
+                  <Tooltip formatter={(value) => formatRupiah(Number(value))} />
+                  <Bar dataKey="total" fill="#95B1EE" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+
+            <Card style={{ boxShadow: 'var(--shadow-card)', flex: 1 }}>
+              <h3 style={{ marginBottom: 8 }}>Per Kategori</h3>
+              {donutData.length === 0 ? (
+                <p style={{ color: 'var(--color-text-muted)' }}>Belum ada data</p>
+              ) : (
+                <>
+                  <ResponsiveContainer width="100%" height={140}>
+                    <PieChart>
+                      <Pie data={donutData} dataKey="total" nameKey="category" innerRadius={38} outerRadius={58} paddingAngle={2}>
+                        {donutData.map((_, i) => (
+                          <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => formatRupiah(Number(value))} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8, maxHeight: 90, overflowY: 'auto' }}>
+                    {donutData.map((d, i) => (
+                      <div key={d.category} style={{ display: 'grid', gridTemplateColumns: '10px 1fr auto', gap: 8, alignItems: 'center', fontSize: 12 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: DONUT_COLORS[i % DONUT_COLORS.length] }} />
+                        <span>{d.category}</span>
+                        <span style={{ color: 'var(--color-text-muted)' }}>{formatRupiah(d.total)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </Card>
+          </div>
 
           <Card style={{ boxShadow: 'var(--shadow-card)', padding: 0, overflow: 'hidden' }}>
             {loading ? (

@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Search, X, List, Grid2x2, LayoutGrid, ChevronDown, Banknote, QrCode } from 'lucide-react'
+import { Search, X, List, Grid2x2, LayoutGrid, ChevronDown, Banknote, QrCode, Calendar } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import type { Product } from '@/types/product'
+
+// Nyalain lagi ke `true` kalau nanti fitur uang diterima + kembalian mau dipakai lagi.
+const ENABLE_CASH_DETAILS = false
 
 interface CartItem {
   product: Product
@@ -28,6 +31,10 @@ const sizeConfig: Record<Exclude<ViewMode, 'list'>, { minWidth: number; avatar: 
   small: { minWidth: 100, avatar: 40, font: 11 },
 }
 
+function todayStr() {
+  return new Date().toISOString().split('T')[0]
+}
+
 export default function NewTransactionForm({ onSuccess, onCancel }: NewTransactionFormProps) {
   const [products, setProducts] = useState<Product[]>([])
   const [search, setSearch] = useState('')
@@ -35,6 +42,7 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'qris'>('cash')
   const [cashReceived, setCashReceived] = useState('')
   const [notes, setNotes] = useState('')
+  const [transactionDate, setTransactionDate] = useState(todayStr())
   const [saving, setSaving] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [viewMenuOpen, setViewMenuOpen] = useState(false)
@@ -75,23 +83,26 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
   }
 
   const total = cart.reduce((sum, item) => sum + item.product.selling_price * item.quantity, 0)
-  const change = Number(cashReceived || 0) - total
-  const cashInvalid = paymentMethod === 'cash' && (cashReceived === '' || Number(cashReceived) < total)
+  const change = ENABLE_CASH_DETAILS ? Number(cashReceived || 0) - total : 0
+  const cashInvalid =
+    ENABLE_CASH_DETAILS && paymentMethod === 'cash' && (cashReceived === '' || Number(cashReceived) < total)
 
   async function handleCompleteSale() {
     if (cart.length === 0 || cashInvalid) return
     setSaving(true)
 
-    const trxNumber = `TRX-${Date.now()}`
+    const now = new Date()
+    const [year, month, day] = transactionDate.split('-').map(Number)
+    const createdAt = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds())
 
     const { data: trx, error: trxError } = await supabase
       .from('transactions')
       .insert({
-        trx_number: trxNumber,
         payment_method: paymentMethod,
         total,
         notes: notes || null,
-        cash_received: paymentMethod === 'cash' ? Number(cashReceived) : null,
+        cash_received: ENABLE_CASH_DETAILS && paymentMethod === 'cash' ? Number(cashReceived) : null,
+        created_at: createdAt.toISOString(),
       })
       .select()
       .single()
@@ -152,7 +163,7 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
       </div>
 
       <div style={{ display: 'flex', gap: 24 }}>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 3 }}>
           <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
             <div style={{ position: 'relative', flex: 1 }}>
               <Search
@@ -242,7 +253,7 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
           </div>
 
           {viewMode === 'list' ? (
-            <div style={{ maxHeight: 340, overflowY: 'auto' }}>
+            <div style={{ maxHeight: 380, overflowY: 'auto' }}>
               {filteredProducts.map((p) => (
                 <div
                   key={p.id}
@@ -285,7 +296,7 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
                 display: 'grid',
                 gridTemplateColumns: `repeat(auto-fill, minmax(${sizeConfig[viewMode].minWidth}px, 1fr))`,
                 gap: 12,
-                maxHeight: 340,
+                maxHeight: 380,
                 overflowY: 'auto',
               }}
             >
@@ -339,28 +350,31 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
             background: 'var(--color-bg)',
             borderRadius: 16,
             padding: 20,
+            minWidth: 220,
           }}
         >
-          <h3 style={{ marginBottom: 16 }}>Transaksi Saat Ini</h3>
-          {cart.length === 0 && <p style={{ color: 'var(--color-text-muted)' }}>Belum ada item</p>}
+          <h3 style={{ marginBottom: 16, fontSize: 15 }}>Transaksi Saat Ini</h3>
+          {cart.length === 0 && <p style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>Belum ada item</p>}
           {cart.map((item) => (
-            <div key={item.product.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, alignItems: 'center' }}>
-              <span>{item.product.name}</span>
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <button
-                  onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                  style={{ width: 24, height: 24, borderRadius: 6, border: '1px solid var(--color-border)', background: 'var(--color-card)' }}
-                >
-                  -
-                </button>
-                <span>{item.quantity}</span>
-                <button
-                  onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                  style={{ width: 24, height: 24, borderRadius: 6, border: '1px solid var(--color-border)', background: 'var(--color-card)' }}
-                >
-                  +
-                </button>
-                <span style={{ minWidth: 80, textAlign: 'right', fontWeight: 600 }}>
+            <div key={item.product.id} style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 13, marginBottom: 4 }}>{item.product.name}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <button
+                    onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                    style={{ width: 22, height: 22, borderRadius: 6, border: '1px solid var(--color-border)', background: 'var(--color-card)' }}
+                  >
+                    -
+                  </button>
+                  <span style={{ fontSize: 13 }}>{item.quantity}</span>
+                  <button
+                    onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                    style={{ width: 22, height: 22, borderRadius: 6, border: '1px solid var(--color-border)', background: 'var(--color-card)' }}
+                  >
+                    +
+                  </button>
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>
                   Rp{(item.product.selling_price * item.quantity).toLocaleString('id-ID')}
                 </span>
               </div>
@@ -368,7 +382,7 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
           ))}
 
           <hr style={{ borderColor: 'var(--color-border)', margin: '16px 0' }} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 18, marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 16, marginBottom: 16 }}>
             <span>TOTAL</span>
             <span>Rp{total.toLocaleString('id-ID')}</span>
           </div>
@@ -388,9 +402,10 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
                 background: paymentMethod === 'cash' ? 'var(--color-primary)' : 'var(--color-card)',
                 color: paymentMethod === 'cash' ? '#fff' : 'var(--color-text)',
                 cursor: 'pointer',
+                fontSize: 13,
               }}
             >
-              <Banknote size={16} /> Tunai
+              <Banknote size={15} /> Tunai
             </button>
             <button
               onClick={() => setPaymentMethod('qris')}
@@ -406,13 +421,14 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
                 background: paymentMethod === 'qris' ? 'var(--color-primary)' : 'var(--color-card)',
                 color: paymentMethod === 'qris' ? '#fff' : 'var(--color-text)',
                 cursor: 'pointer',
+                fontSize: 13,
               }}
             >
-              <QrCode size={16} /> QRIS
+              <QrCode size={15} /> QRIS
             </button>
           </div>
 
-          {paymentMethod === 'cash' && (
+          {ENABLE_CASH_DETAILS && paymentMethod === 'cash' && (
             <div style={{ marginBottom: 12 }}>
               <input
                 type="number"
@@ -427,6 +443,7 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
                   background: 'var(--color-card)',
                   color: 'var(--color-text)',
                   marginBottom: 8,
+                  fontSize: 13,
                 }}
               />
               {cashReceived !== '' && (
@@ -434,7 +451,7 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
                   style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: 600,
                     color: change < 0 ? '#c0392b' : 'var(--color-text)',
                   }}
@@ -445,6 +462,27 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
               )}
             </div>
           )}
+
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 6 }}>
+              <Calendar size={13} /> Tanggal Transaksi
+            </label>
+            <input
+              type="date"
+              value={transactionDate}
+              max={todayStr()}
+              onChange={(e) => setTransactionDate(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: 10,
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-card)',
+                color: 'var(--color-text)',
+                fontSize: 13,
+              }}
+            />
+          </div>
 
           <textarea
             placeholder="Catatan (opsional)"
@@ -461,13 +499,14 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
               marginBottom: 16,
               resize: 'none',
               fontFamily: 'var(--font-body)',
+              fontSize: 13,
             }}
           />
 
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               onClick={onCancel}
-              style={{ flex: 1, padding: 12, borderRadius: 10, border: '1px solid var(--color-border)', background: 'var(--color-card)', color: 'var(--color-text)', cursor: 'pointer' }}
+              style={{ flex: 1, padding: 12, borderRadius: 10, border: '1px solid var(--color-border)', background: 'var(--color-card)', color: 'var(--color-text)', cursor: 'pointer', fontSize: 13 }}
             >
               Batal
             </button>
@@ -484,6 +523,7 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
                 fontWeight: 600,
                 cursor: saving || cart.length === 0 || cashInvalid ? 'not-allowed' : 'pointer',
                 opacity: saving || cart.length === 0 || cashInvalid ? 0.6 : 1,
+                fontSize: 13,
               }}
             >
               {saving ? 'Menyimpan...' : 'Selesaikan Transaksi'}

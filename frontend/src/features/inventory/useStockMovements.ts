@@ -9,6 +9,7 @@ export interface StockMovementRow {
   products: {
     name: string
     unit: string
+    category: string
   }
 }
 
@@ -25,10 +26,10 @@ export function useStockMovements() {
         change,
         reason,
         created_at,
-        products ( name, unit )
+        products ( name, unit, category )
       `)
       .order('created_at', { ascending: false })
-      .limit(50)
+      .limit(300)
 
     if (!error && data) setMovements(data as unknown as StockMovementRow[])
     setLoading(false)

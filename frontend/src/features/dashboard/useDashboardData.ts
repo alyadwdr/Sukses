@@ -8,14 +8,16 @@ interface DashboardData {
   todaySales: number
   todayExpenses: number
   todayTransactionCount: number
-  chartData: { label: string; sales: number }[]
+  todayNetProfit: number
+  chartData: { label: string; sales: number; expenses: number }[]
   recentTransactions: { id: string; trx_number: string; created_at: string; total: number; itemCount: number }[]
   lowStockProducts: { id: string; name: string; stock: number; unit: string }[]
+  bestSellers: { name: string; qty: number }[]
 }
 
 const TRX_SELECT = `
   id, trx_number, total, created_at,
-  transaction_items ( quantity, subtotal, products ( category ) )
+  transaction_items ( quantity, subtotal, products ( name, category, purchase_price ) )
 `
 
 function matchesFilter(trx: any, filter: string) {
@@ -31,60 +33,98 @@ export function useDashboardData(period: ChartPeriod) {
   const fetchData = useCallback(async () => {
     setLoading(true)
 
+    const now = new Date()
     const todayStart = new Date()
     todayStart.setHours(0, 0, 0, 0)
 
-    const rangeStart = new Date()
-    if (period === '7d') rangeStart.setDate(rangeStart.getDate() - 6)
-    else if (period === '1m') rangeStart.setDate(rangeStart.getDate() - 29)
-    else rangeStart.setMonth(rangeStart.getMonth() - 11)
-    rangeStart.setHours(0, 0, 0, 0)
+    let rangeStart: Date
+    let rangeEnd: Date
 
-    const [{ data: periodTrx }, { data: latestTrx }, { data: expenses }, { data: lowStock }] = await Promise.all([
-      supabase.from('transactions').select(TRX_SELECT).gte('created_at', rangeStart.toISOString()),
-      supabase.from('transactions').select(TRX_SELECT).order('created_at', { ascending: false }).limit(30),
-      supabase
-        .from('expenses')
-        .select('amount, expense_date')
-        .gte('expense_date', todayStart.toISOString().split('T')[0]),
-      supabase.from('products').select('id, name, stock, unit, min_stock').order('stock', { ascending: true }),
-    ])
+    if (period === '7d') {
+      rangeStart = new Date()
+      rangeStart.setDate(rangeStart.getDate() - 6)
+      rangeStart.setHours(0, 0, 0, 0)
+      rangeEnd = new Date()
+      rangeEnd.setHours(23, 59, 59, 999)
+    } else if (period === '1m') {
+      rangeStart = new Date(now.getFullYear(), now.getMonth(), 1)
+      rangeEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+    } else {
+      rangeStart = new Date(now.getFullYear(), 0, 1)
+      rangeEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999)
+    }
+
+    const [{ data: periodTrx }, { data: latestTrx }, { data: periodExpenses }, { data: todayExpensesData }, { data: lowStock }] =
+      await Promise.all([
+        supabase.from('transactions').select(TRX_SELECT).gte('created_at', rangeStart.toISOString()).lte('created_at', rangeEnd.toISOString()),
+        supabase.from('transactions').select(TRX_SELECT).order('created_at', { ascending: false }).limit(30),
+        supabase
+          .from('expenses')
+          .select('amount, expense_date')
+          .gte('expense_date', rangeStart.toISOString().split('T')[0])
+          .lte('expense_date', rangeEnd.toISOString().split('T')[0]),
+        supabase.from('expenses').select('amount, expense_date').gte('expense_date', todayStart.toISOString().split('T')[0]),
+        supabase.from('products').select('id, name, stock, unit, min_stock').order('stock', { ascending: true }),
+      ])
 
     const relevantPeriodTrx = (periodTrx ?? []).filter((trx) => matchesFilter(trx, filter))
     const relevantLatestTrx = (latestTrx ?? []).filter((trx) => matchesFilter(trx, filter))
 
     const todayTrx = relevantPeriodTrx.filter((trx) => new Date(trx.created_at) >= todayStart)
     const todaySales = todayTrx.reduce((sum, trx) => sum + trx.total, 0)
-    const todayExpenses = (expenses ?? []).reduce((sum, e) => sum + e.amount, 0)
+    const todayCostOfGoods = todayTrx.reduce(
+      (sum, trx) =>
+        sum + trx.transaction_items.reduce((s: number, i: any) => s + i.products.purchase_price * i.quantity, 0),
+      0
+    )
+    const todayExpenses = (todayExpensesData ?? []).reduce((sum, e) => sum + e.amount, 0)
+    const todayNetProfit = todaySales - todayCostOfGoods - todayExpenses
 
-    let chartData: { label: string; sales: number }[] = []
+    let chartData: { label: string; sales: number; expenses: number }[] = []
 
-    if (period === '7d' || period === '1m') {
-      const days = period === '7d' ? 7 : 30
-      chartData = Array.from({ length: days }).map((_, i) => {
+    if (period === '7d') {
+      chartData = Array.from({ length: 7 }).map((_, i) => {
         const day = new Date(rangeStart)
         day.setDate(day.getDate() + i)
         const dayStr = day.toISOString().split('T')[0]
         const daySales = relevantPeriodTrx
           .filter((trx) => trx.created_at.startsWith(dayStr))
           .reduce((sum, trx) => sum + trx.total, 0)
-        const label =
-          period === '7d'
-            ? day.toLocaleDateString('id-ID', { weekday: 'short' })
-            : day.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' })
-        return { label, sales: daySales }
+        const dayExpenses = (periodExpenses ?? [])
+          .filter((e) => e.expense_date === dayStr)
+          .reduce((sum, e) => sum + e.amount, 0)
+        return { label: day.toLocaleDateString('id-ID', { weekday: 'short' }), sales: daySales, expenses: dayExpenses }
+      })
+    } else if (period === '1m') {
+      const daysInMonth = rangeEnd.getDate()
+      chartData = Array.from({ length: daysInMonth }).map((_, i) => {
+        const day = new Date(rangeStart)
+        day.setDate(i + 1)
+        const dayStr = day.toISOString().split('T')[0]
+        const daySales = relevantPeriodTrx
+          .filter((trx) => trx.created_at.startsWith(dayStr))
+          .reduce((sum, trx) => sum + trx.total, 0)
+        const dayExpenses = (periodExpenses ?? [])
+          .filter((e) => e.expense_date === dayStr)
+          .reduce((sum, e) => sum + e.amount, 0)
+        return { label: String(i + 1), sales: daySales, expenses: dayExpenses }
       })
     } else {
       chartData = Array.from({ length: 12 }).map((_, i) => {
-        const month = new Date(rangeStart)
-        month.setMonth(month.getMonth() + i)
         const monthSales = relevantPeriodTrx
           .filter((trx) => {
             const d = new Date(trx.created_at)
-            return d.getMonth() === month.getMonth() && d.getFullYear() === month.getFullYear()
+            return d.getMonth() === i && d.getFullYear() === rangeStart.getFullYear()
           })
           .reduce((sum, trx) => sum + trx.total, 0)
-        return { label: month.toLocaleDateString('id-ID', { month: 'short' }), sales: monthSales }
+        const monthExpenses = (periodExpenses ?? [])
+          .filter((e) => {
+            const d = new Date(e.expense_date)
+            return d.getMonth() === i && d.getFullYear() === rangeStart.getFullYear()
+          })
+          .reduce((sum, e) => sum + e.amount, 0)
+        const monthLabel = new Date(rangeStart.getFullYear(), i, 1).toLocaleDateString('id-ID', { month: 'short' })
+        return { label: monthLabel, sales: monthSales, expenses: monthExpenses }
       })
     }
 
@@ -98,13 +138,27 @@ export function useDashboardData(period: ChartPeriod) {
 
     const lowStockProducts = (lowStock ?? []).filter((p) => p.stock <= p.min_stock).slice(0, 5)
 
+    const productQty: Record<string, number> = {}
+    relevantPeriodTrx.forEach((trx) => {
+      trx.transaction_items.forEach((item: any) => {
+        const name = item.products?.name ?? 'Produk'
+        productQty[name] = (productQty[name] ?? 0) + item.quantity
+      })
+    })
+    const bestSellers = Object.entries(productQty)
+      .map(([name, qty]) => ({ name, qty }))
+      .sort((a, b) => b.qty - a.qty)
+      .slice(0, 10)
+
     setData({
       todaySales,
       todayExpenses,
       todayTransactionCount: todayTrx.length,
+      todayNetProfit,
       chartData,
       recentTransactions,
       lowStockProducts,
+      bestSellers,
     })
     setLoading(false)
   }, [filter, period])

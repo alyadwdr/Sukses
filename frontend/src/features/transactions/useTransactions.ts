@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useBusinessFilter } from '@/context/BusinessFilterContext'
 
 export interface TransactionRow {
   id: string
@@ -7,6 +8,8 @@ export interface TransactionRow {
   payment_method: string
   total: number
   created_at: string
+  notes?: string | null
+  cash_received?: number | null
   transaction_items: {
     id: string
     quantity: number
@@ -22,6 +25,7 @@ export interface TransactionRow {
 export function useTransactions() {
   const [transactions, setTransactions] = useState<TransactionRow[]>([])
   const [loading, setLoading] = useState(true)
+  const { filter } = useBusinessFilter()
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true)
@@ -33,6 +37,8 @@ export function useTransactions() {
         payment_method,
         total,
         created_at,
+        notes,
+        cash_received,
         transaction_items (
           id,
           quantity,
@@ -43,9 +49,16 @@ export function useTransactions() {
       `)
       .order('created_at', { ascending: false })
 
-    if (!error && data) setTransactions(data as unknown as TransactionRow[])
+    if (!error && data) {
+      const rows = data as unknown as TransactionRow[]
+      const filtered = rows.filter((trx) => {
+        if (filter === 'all') return true
+        return trx.transaction_items.some((item) => item.products.category === filter)
+      })
+      setTransactions(filtered)
+    }
     setLoading(false)
-  }, [])
+  }, [filter])
 
   useEffect(() => {
     fetchTransactions()

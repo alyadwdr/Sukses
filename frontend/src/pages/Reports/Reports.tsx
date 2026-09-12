@@ -1,8 +1,12 @@
 import { TrendingUp, TrendingDown, Coins, FileText, FileSpreadsheet } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import * as XLSX from 'xlsx'
 import { useReportsData } from '@/features/reports/useReportsData'
-import BusinessFilterTabs from '@/components/BusinessFilterTabs/BusinessFilterTabs'
+import { useBusiness } from '@/context/BusinessContext'
 import Card from '@/components/Card/Card'
+import PageTopBar from '@/components/PageTopBar/PageTopBar'
 
 function formatRupiah(value: number) {
   return `Rp${value.toLocaleString('id-ID')}`
@@ -29,49 +33,128 @@ function IconBadge({ children, bg, color }: { children: React.ReactNode; bg: str
 
 export default function Reports() {
   const { data, loading } = useReportsData()
+  const { business } = useBusiness()
 
   if (loading || !data) return <p>Memuat...</p>
 
+  function handleExportPDF() {
+    if (!data) return
+    const doc = new jsPDF()
+
+    doc.setFontSize(18)
+    doc.text(business?.name ?? 'Sukses', 14, 20)
+
+    let y = 27
+    doc.setFontSize(10)
+    doc.setTextColor(110)
+    if (business?.address) {
+      doc.text(business.address, 14, y)
+      y += 5
+    }
+    if (business?.phone) {
+      doc.text(business.phone, 14, y)
+      y += 5
+    }
+
+    doc.setTextColor(0)
+    doc.setFontSize(13)
+    doc.text('Laporan Bisnis', 14, y + 8)
+    doc.setFontSize(9)
+    doc.setTextColor(120)
+    doc.text(`Dibuat: ${new Date().toLocaleDateString('id-ID')}`, 14, y + 14)
+    doc.setTextColor(0)
+
+    autoTable(doc, {
+      startY: y + 20,
+      head: [['Ringkasan', 'Nilai']],
+      body: [
+        ['Total Penjualan', formatRupiah(data.totalSales)],
+        ['Jumlah Transaksi', String(data.transactionCount)],
+        ['Item Terjual', String(data.totalItemsSold)],
+        ['Rata-rata Transaksi', formatRupiah(data.avgTransaction)],
+        ['Modal Barang', formatRupiah(data.costOfGoods)],
+        ['Laba Kotor', formatRupiah(data.grossProfit)],
+        ['Total Pengeluaran', formatRupiah(data.totalExpenses)],
+      ],
+      headStyles: { fillColor: [149, 177, 238] },
+    })
+
+    autoTable(doc, {
+      startY: (doc as any).lastAutoTable.finalY + 10,
+      head: [['Produk Terlaris', 'Jumlah Terjual']],
+      body: data.bestSellers.map((b) => [b.name, String(b.qty)]),
+      headStyles: { fillColor: [149, 177, 238] },
+    })
+
+    doc.save(`laporan-${new Date().toISOString().split('T')[0]}.pdf`)
+  }
+
+  function handleExportExcel() {
+    if (!data) return
+
+    const summarySheet = XLSX.utils.json_to_sheet([
+      { Ringkasan: 'Total Penjualan', Nilai: data.totalSales },
+      { Ringkasan: 'Jumlah Transaksi', Nilai: data.transactionCount },
+      { Ringkasan: 'Item Terjual', Nilai: data.totalItemsSold },
+      { Ringkasan: 'Rata-rata Transaksi', Nilai: data.avgTransaction },
+      { Ringkasan: 'Modal Barang', Nilai: data.costOfGoods },
+      { Ringkasan: 'Laba Kotor', Nilai: data.grossProfit },
+      { Ringkasan: 'Total Pengeluaran', Nilai: data.totalExpenses },
+    ])
+
+    const bestSellerSheet = XLSX.utils.json_to_sheet(
+      data.bestSellers.map((b) => ({ Produk: b.name, 'Jumlah Terjual': b.qty }))
+    )
+
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, summarySheet, 'Ringkasan')
+    XLSX.utils.book_append_sheet(wb, bestSellerSheet, 'Produk Terlaris')
+    XLSX.writeFile(wb, `laporan-${new Date().toISOString().split('T')[0]}.xlsx`)
+  }
+
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
-        <h1 style={{ color: 'var(--color-text)' }}>Laporan Bisnis</h1>
-        <BusinessFilterTabs />
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '8px 16px',
-              borderRadius: 20,
-              border: '1px solid var(--color-border)',
-              background: 'var(--color-card)',
-              color: 'var(--color-text)',
-              cursor: 'pointer',
-              fontSize: 14,
-            }}
-          >
-            <FileText size={15} /> PDF
-          </button>
-          <button
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '8px 16px',
-              borderRadius: 20,
-              border: '1px solid var(--color-border)',
-              background: 'var(--color-card)',
-              color: 'var(--color-text)',
-              cursor: 'pointer',
-              fontSize: 14,
-            }}
-          >
-            <FileSpreadsheet size={15} /> Excel
-          </button>
-        </div>
-      </div>
+      <PageTopBar
+        title="Laporan Bisnis"
+        action={
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              onClick={handleExportPDF}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 16px',
+                borderRadius: 20,
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-card)',
+                color: 'var(--color-text)',
+                cursor: 'pointer',
+                fontSize: 14,
+              }}
+            >
+              <FileText size={15} /> PDF
+            </button>
+            <button
+              onClick={handleExportExcel}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 16px',
+                borderRadius: 20,
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-card)',
+                color: 'var(--color-text)',
+                cursor: 'pointer',
+                fontSize: 14,
+              }}
+            >
+              <FileSpreadsheet size={15} /> Excel
+            </button>
+          </div>
+        }
+      />
 
       <div style={{ display: 'flex', gap: 20, marginBottom: 20, flexWrap: 'wrap' }}>
         <Card style={{ boxShadow: 'var(--shadow-card)', flex: 1, minWidth: 260 }}>
