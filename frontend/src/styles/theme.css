@@ -6,6 +6,8 @@
   --color-text: #364C84;
   --color-text-muted: #8b95ad;
   --color-border: rgba(54, 76, 132, 0.12);
+  --color-sembako: #6D89C4;
+  --color-plastik: #7C9A5E;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -15,14 +17,16 @@
 }
 
 [data-theme='dark'] {
-  --color-bg: #1A2138;
-  --color-card: #242C4A;
-  --color-primary: #95B1EE;
-  --color-accent: #E7F1A8;
-  --color-text: #FFFDF5;
-  --color-text-muted: #a8b3cc;
-  --color-border: rgba(255, 253, 245, 0.1);
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.15);
+  --color-bg: #1C1C1E;
+  --color-card: #262626;
+  --color-primary: #6E8AC4;
+  --color-accent: #79915F;
+  --color-text: #E8E8E8;
+  --color-text-muted: #9A9A9A;
+  --color-border: rgba(255, 255, 255, 0.09);
+  --color-sembako: #6E8AC4;
+  --color-plastik: #79915F;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 body {
@@ -40,4 +44,18 @@ body {
 h1, h2, h3, h4 {
   font-family: var(--font-heading);
   font-weight: 600;
+}
+
+input[type='date'] {
+  font-family: var(--font-body);
+  color-scheme: light;
+}
+
+[data-theme='dark'] input[type='date'] {
+  color-scheme: dark;
+}
+
+input[type='date']::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
 }
