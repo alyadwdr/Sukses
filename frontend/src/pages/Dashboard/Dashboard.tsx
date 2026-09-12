@@ -87,15 +87,20 @@ export default function Dashboard() {
             </span>
           </div>
 
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={data.chartData}>
-              <XAxis dataKey="label" stroke="var(--color-text-muted)" fontSize={11} />
-              <YAxis stroke="var(--color-text-muted)" fontSize={12} />
-              <Tooltip formatter={(value) => formatRupiah(Number(value))} />
-              <Bar dataKey="sales" fill="#95B1EE" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="expenses" fill="#364C84" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <ResponsiveContainer width="100%" height={360}>
+  <BarChart data={data.chartData}>
+    <XAxis dataKey="label" stroke="var(--color-text-muted)" fontSize={11} />
+    <YAxis
+      stroke="var(--color-text-muted)"
+      fontSize={12}
+      tickFormatter={(value: number) => value.toLocaleString('id-ID')}
+      width={70}
+    />
+    <Tooltip formatter={(value) => formatRupiah(Number(value))} />
+    <Bar dataKey="sales" fill="#95B1EE" radius={[6, 6, 0, 0]} />
+    <Bar dataKey="expenses" fill="#364C84" radius={[6, 6, 0, 0]} />
+  </BarChart>
+</ResponsiveContainer>
         </Card>
       </div>
 

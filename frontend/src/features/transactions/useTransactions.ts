@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useBusinessFilter } from '@/context/BusinessFilterContext'
+import { filterItemsByCategory } from '@/lib/categoryFilter'
 
 export interface TransactionRow {
   id: string
@@ -51,10 +52,12 @@ export function useTransactions() {
 
     if (!error && data) {
       const rows = data as unknown as TransactionRow[]
-      const filtered = rows.filter((trx) => {
-        if (filter === 'all') return true
-        return trx.transaction_items.some((item) => item.products.category === filter)
-      })
+      const filtered = rows
+        .map((trx) => ({
+          ...trx,
+          transaction_items: filterItemsByCategory(trx.transaction_items, filter),
+        }))
+        .filter((trx) => trx.transaction_items.length > 0)
       setTransactions(filtered)
     }
     setLoading(false)

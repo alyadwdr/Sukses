@@ -7,6 +7,7 @@ interface Props {
 
 export default function ReceiptCard({ transaction }: Props) {
   const totalItems = transaction.transaction_items.reduce((sum, item) => sum + item.quantity, 0)
+  const displayTotal = transaction.transaction_items.reduce((sum, item) => sum + item.subtotal, 0)
 
   return (
     <Card style={{ boxShadow: 'var(--shadow-card)', background: 'var(--color-card)' }}>
@@ -43,11 +44,26 @@ export default function ReceiptCard({ transaction }: Props) {
         <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{totalItems} Item</div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, marginTop: 4 }}>
           <span>Total</span>
-          <span>Rp{transaction.total.toLocaleString('id-ID')}</span>
+          <span>Rp{displayTotal.toLocaleString('id-ID')}</span>
         </div>
         <div style={{ fontSize: 13, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginTop: 4 }}>
   {transaction.payment_method === 'cash' ? 'Tunai' : transaction.payment_method}
 </div>
+
+{transaction.notes && (
+  <div
+    style={{
+      marginTop: 10,
+      paddingTop: 10,
+      borderTop: '1px dashed var(--color-border)',
+      fontSize: 13,
+      color: 'var(--color-text-muted)',
+      fontStyle: 'italic',
+    }}
+  >
+    "{transaction.notes}"
+  </div>
+)}
       </div>
     </Card>
   )

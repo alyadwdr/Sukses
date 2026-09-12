@@ -290,18 +290,18 @@ export default function Inventory() {
       />
 
       <div
-        style={{
-          maxHeight: showForm ? 200 : 0,
-          opacity: showForm ? 1 : 0,
-          overflow: 'hidden',
-          transition: 'max-height 0.3s ease, opacity 0.25s ease, margin-bottom 0.3s ease',
-          marginBottom: showForm ? 24 : 0,
-        }}
-      >
-        <Card style={{ boxShadow: 'var(--shadow-card)' }}>
-          <StockInForm products={products} onSuccess={handleStockInSuccess} />
-        </Card>
-      </div>
+  style={{
+    maxHeight: showForm ? 420 : 0,
+    opacity: showForm ? 1 : 0,
+    overflow: showForm ? 'visible' : 'hidden',
+    transition: 'max-height 0.3s ease, opacity 0.25s ease, margin-bottom 0.3s ease',
+    marginBottom: showForm ? 24 : 0,
+  }}
+>
+  <Card style={{ boxShadow: 'var(--shadow-card)' }}>
+    <StockInForm products={products} onSuccess={handleStockInSuccess} />
+  </Card>
+</div>
 
       <div style={{ marginBottom: 16 }}>
         <DotIndicator activeSlide={activeSlide} onSelect={setActiveSlide} />

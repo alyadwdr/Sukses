@@ -24,6 +24,7 @@ export default function AddProductForm({ onSuccess, onCancel }: AddProductFormPr
   const [purchasePrice, setPurchasePrice] = useState('')
   const [sellingPrice, setSellingPrice] = useState('')
   const [unit, setUnit] = useState('')
+  const [variant, setVariant] = useState('')
   const [stock, setStock] = useState('')
   const [minStock, setMinStock] = useState('')
   const [saving, setSaving] = useState(false)
@@ -34,31 +35,38 @@ export default function AddProductForm({ onSuccess, onCancel }: AddProductFormPr
   setSaving(true)
 
   const { data: inserted, error } = await supabase
-    .from('products')
-    .insert({
-      name,
-      category,
-      purchase_price: Number(purchasePrice),
-      selling_price: Number(sellingPrice),
-      unit,
-      stock: Number(stock),
-      min_stock: Number(minStock),
-    })
-    .select()
-    .single()
+  .from('products')
+  .insert({
+    name,
+    category,
+    variant: variant || null,
+    purchase_price: Number(purchasePrice),
+    selling_price: Number(sellingPrice),
+    unit,
+    stock: Number(stock),
+    min_stock: Number(minStock),
+  })
+  .select()
+  .single()
 
-  if (!error && inserted && image) {
-    const res = await fetch(image)
-    const blob = await res.blob()
-    const path = `${inserted.id}-${Date.now()}.jpg`
-    const { error: uploadError } = await supabase.storage.from('product-images').upload(path, blob, {
-      contentType: 'image/jpeg',
-    })
-    if (!uploadError) {
-      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path)
-      await supabase.from('products').update({ image_url: urlData.publicUrl }).eq('id', inserted.id)
-    }
+if (error) {
+  console.error('Gagal menyimpan produk:', error)
+}
+
+if (!error && inserted && image) {
+  const res = await fetch(image)
+  const blob = await res.blob()
+  const path = `${inserted.id}-${Date.now()}.jpg`
+  const { error: uploadError } = await supabase.storage.from('product-images').upload(path, blob, {
+    contentType: 'image/jpeg',
+  })
+  if (uploadError) {
+    console.error('Gagal mengunggah foto produk:', uploadError)
+  } else {
+    const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path)
+    await supabase.from('products').update({ image_url: urlData.publicUrl }).eq('id', inserted.id)
   }
+}
 
   setSaving(false)
   if (!error) onSuccess()
@@ -100,6 +108,13 @@ export default function AddProductForm({ onSuccess, onCancel }: AddProductFormPr
           required
           style={inputStyle}
         />
+
+        <input
+  placeholder="Varian / Ukuran (cth. 1kg, 250ml) — opsional"
+  value={variant}
+  onChange={(e) => setVariant(e.target.value)}
+  style={inputStyle}
+/>
 
         <div style={{ display: 'flex', gap: 14 }}>
           <select

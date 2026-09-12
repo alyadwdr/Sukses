@@ -14,7 +14,6 @@ import Inventory from '@/pages/Inventory/Inventory'
 import Expenses from '@/pages/Expenses/Expenses'
 import Income from '@/pages/Income/Income'
 import Reports from '@/pages/Reports/Reports'
-import Notifications from '@/pages/Notifications/Notifications'
 import Settings from '@/pages/Settings/Settings'
 
 export default function App() {
@@ -49,7 +48,6 @@ export default function App() {
                   <Route path="expenses" element={<Expenses />} />
                   <Route path="income" element={<Income />} />
                   <Route path="reports" element={<Reports />} />
-                  <Route path="notifications" element={<Notifications />} />
                   <Route path="settings" element={<Settings />} />
                 </Route>
               </Routes>

@@ -6,6 +6,7 @@ export interface Product {
   purchase_price: number
   selling_price: number
   unit: string
+  variant: string | null
   stock: number
   min_stock: number
   image_url: string | null

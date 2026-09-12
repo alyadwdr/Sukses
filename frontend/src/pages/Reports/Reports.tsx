@@ -1,9 +1,10 @@
+import { useState } from 'react'
 import { TrendingUp, TrendingDown, Coins, FileText, FileSpreadsheet } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
-import { useReportsData } from '@/features/reports/useReportsData'
+import { useReportsData, type ReportTimeFilter } from '@/features/reports/useReportsData'
 import { useBusiness } from '@/context/BusinessContext'
 import Card from '@/components/Card/Card'
 import PageTopBar from '@/components/PageTopBar/PageTopBar'
@@ -31,41 +32,124 @@ function IconBadge({ children, bg, color }: { children: React.ReactNode; bg: str
   )
 }
 
+const timeOptions: { label: string; value: ReportTimeFilter }[] = [
+  { label: 'Semua', value: 'all' },
+  { label: 'Hari Ini', value: 'today' },
+  { label: 'Bulan Ini', value: 'month' },
+  { label: 'Tahun Ini', value: 'year' },
+  { label: 'Kustom', value: 'custom' },
+]
+
+const dateInputStyle = {
+  padding: '8px 12px',
+  borderRadius: 8,
+  border: '1px solid var(--color-border)',
+  background: 'var(--color-bg)',
+  color: 'var(--color-text)',
+  fontSize: 13,
+}
+
 export default function Reports() {
-  const { data, loading } = useReportsData()
+  const [timeFilter, setTimeFilter] = useState<ReportTimeFilter>('month')
+  const [customFrom, setCustomFrom] = useState('')
+  const [customTo, setCustomTo] = useState('')
+  const [appliedFrom, setAppliedFrom] = useState('')
+  const [appliedTo, setAppliedTo] = useState('')
+
+  const { data, loading } = useReportsData(timeFilter, appliedFrom, appliedTo)
   const { business } = useBusiness()
 
   if (loading || !data) return <p>Memuat...</p>
 
+  function handleApplyCustom() {
+    setAppliedFrom(customFrom)
+    setAppliedTo(customTo)
+  }
+
   function handleExportPDF() {
     if (!data) return
     const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const centerX = pageWidth / 2
 
-    doc.setFontSize(18)
-    doc.text(business?.name ?? 'Sukses', 14, 20)
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(16)
+    doc.setTextColor(0)
+    doc.text(business?.name ?? 'Sukses', centerX, 18, { align: 'center' })
 
-    let y = 27
+    let y = 25
+    doc.setFont('helvetica', 'normal')
     doc.setFontSize(10)
-    doc.setTextColor(110)
     if (business?.address) {
-      doc.text(business.address, 14, y)
+      doc.text(business.address, centerX, y, { align: 'center' })
       y += 5
     }
     if (business?.phone) {
-      doc.text(business.phone, 14, y)
+      doc.text(business.phone, centerX, y, { align: 'center' })
       y += 5
     }
 
-    doc.setTextColor(0)
-    doc.setFontSize(13)
-    doc.text('Laporan Bisnis', 14, y + 8)
-    doc.setFontSize(9)
-    doc.setTextColor(120)
-    doc.text(`Dibuat: ${new Date().toLocaleDateString('id-ID')}`, 14, y + 14)
-    doc.setTextColor(0)
+    y += 3
+    doc.setDrawColor(0)
+    doc.setLineWidth(0.4)
+    doc.line(14, y, pageWidth - 14, y)
+    y += 8
 
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Laporan Bisnis', centerX, y, { align: 'center' })
+    y += 5
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(90)
+    doc.text(`Periode: ${data.periodLabel}`, centerX, y, { align: 'center' })
+    doc.setTextColor(0)
+    y += 8
+
+    const grayHead = { fillColor: [230, 230, 230] as [number, number, number], textColor: 0 as any, fontStyle: 'bold' as const }
+    const grayAlt = { fillColor: [245, 245, 245] as [number, number, number] }
+
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Tabel Transaksi', 14, y)
     autoTable(doc, {
-      startY: y + 20,
+      startY: y + 4,
+      head: [['Tanggal', 'No. Struk', 'Produk', 'Kategori', 'Qty', 'Harga', 'Subtotal']],
+      body: data.transactionItemRows.map((r) => [
+        r.date,
+        r.trx_number,
+        r.product,
+        r.category,
+        String(r.qty),
+        formatRupiah(r.price),
+        formatRupiah(r.subtotal),
+      ]),
+      headStyles: grayHead,
+      alternateRowStyles: grayAlt,
+      styles: { textColor: 20, fontSize: 8 },
+      theme: 'grid',
+    })
+
+    let nextY = (doc as any).lastAutoTable.finalY + 12
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Tabel Pengeluaran', 14, nextY)
+    autoTable(doc, {
+      startY: nextY + 4,
+      head: [['Tanggal', 'Deskripsi', 'Kategori', 'Jumlah']],
+      body: data.expenseRows.map((r) => [r.date, r.description, r.category, formatRupiah(r.amount)]),
+      headStyles: grayHead,
+      alternateRowStyles: grayAlt,
+      styles: { textColor: 20, fontSize: 8 },
+      theme: 'grid',
+    })
+
+    nextY = (doc as any).lastAutoTable.finalY + 12
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Ringkasan', 14, nextY)
+    autoTable(doc, {
+      startY: nextY + 4,
       head: [['Ringkasan', 'Nilai']],
       body: [
         ['Total Penjualan', formatRupiah(data.totalSales)],
@@ -76,14 +160,10 @@ export default function Reports() {
         ['Laba Kotor', formatRupiah(data.grossProfit)],
         ['Total Pengeluaran', formatRupiah(data.totalExpenses)],
       ],
-      headStyles: { fillColor: [149, 177, 238] },
-    })
-
-    autoTable(doc, {
-      startY: (doc as any).lastAutoTable.finalY + 10,
-      head: [['Produk Terlaris', 'Jumlah Terjual']],
-      body: data.bestSellers.map((b) => [b.name, String(b.qty)]),
-      headStyles: { fillColor: [149, 177, 238] },
+      headStyles: grayHead,
+      alternateRowStyles: grayAlt,
+      styles: { textColor: 20, fontSize: 9 },
+      theme: 'grid',
     })
 
     doc.save(`laporan-${new Date().toISOString().split('T')[0]}.pdf`)
@@ -92,6 +172,20 @@ export default function Reports() {
   function handleExportExcel() {
     if (!data) return
 
+    const trxSheet = XLSX.utils.json_to_sheet(
+      data.transactionItemRows.map((r) => ({
+        Tanggal: r.date,
+        'No. Struk': r.trx_number,
+        Produk: r.product,
+        Kategori: r.category,
+        Qty: r.qty,
+        Harga: r.price,
+        Subtotal: r.subtotal,
+      }))
+    )
+    const expSheet = XLSX.utils.json_to_sheet(
+      data.expenseRows.map((r) => ({ Tanggal: r.date, Deskripsi: r.description, Kategori: r.category, Jumlah: r.amount }))
+    )
     const summarySheet = XLSX.utils.json_to_sheet([
       { Ringkasan: 'Total Penjualan', Nilai: data.totalSales },
       { Ringkasan: 'Jumlah Transaksi', Nilai: data.transactionCount },
@@ -102,13 +196,10 @@ export default function Reports() {
       { Ringkasan: 'Total Pengeluaran', Nilai: data.totalExpenses },
     ])
 
-    const bestSellerSheet = XLSX.utils.json_to_sheet(
-      data.bestSellers.map((b) => ({ Produk: b.name, 'Jumlah Terjual': b.qty }))
-    )
-
     const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, trxSheet, 'Transaksi')
+    XLSX.utils.book_append_sheet(wb, expSheet, 'Pengeluaran')
     XLSX.utils.book_append_sheet(wb, summarySheet, 'Ringkasan')
-    XLSX.utils.book_append_sheet(wb, bestSellerSheet, 'Produk Terlaris')
     XLSX.writeFile(wb, `laporan-${new Date().toISOString().split('T')[0]}.xlsx`)
   }
 
@@ -121,16 +212,8 @@ export default function Reports() {
             <button
               onClick={handleExportPDF}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '8px 16px',
-                borderRadius: 20,
-                border: '1px solid var(--color-border)',
-                background: 'var(--color-card)',
-                color: 'var(--color-text)',
-                cursor: 'pointer',
-                fontSize: 14,
+                display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 20,
+                border: '1px solid var(--color-border)', background: 'var(--color-card)', color: 'var(--color-text)', cursor: 'pointer', fontSize: 14,
               }}
             >
               <FileText size={15} /> PDF
@@ -138,16 +221,8 @@ export default function Reports() {
             <button
               onClick={handleExportExcel}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '8px 16px',
-                borderRadius: 20,
-                border: '1px solid var(--color-border)',
-                background: 'var(--color-card)',
-                color: 'var(--color-text)',
-                cursor: 'pointer',
-                fontSize: 14,
+                display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 20,
+                border: '1px solid var(--color-border)', background: 'var(--color-card)', color: 'var(--color-text)', cursor: 'pointer', fontSize: 14,
               }}
             >
               <FileSpreadsheet size={15} /> Excel
@@ -155,6 +230,38 @@ export default function Reports() {
           </div>
         }
       />
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
+        <div style={{ display: 'inline-flex', padding: 4, borderRadius: 20, background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
+          {timeOptions.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setTimeFilter(opt.value)}
+              style={{
+                padding: '6px 14px', borderRadius: 16, border: 'none', fontSize: 13, cursor: 'pointer',
+                background: timeFilter === opt.value ? 'var(--color-primary)' : 'transparent',
+                color: timeFilter === opt.value ? '#fff' : 'var(--color-text)',
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        {timeFilter === 'custom' && (
+          <>
+            <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} style={dateInputStyle} />
+            <span style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>sampai</span>
+            <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} style={dateInputStyle} />
+            <button
+              onClick={handleApplyCustom}
+              style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--color-primary)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+            >
+              Terapkan
+            </button>
+          </>
+        )}
+      </div>
 
       <div style={{ display: 'flex', gap: 20, marginBottom: 20, flexWrap: 'wrap' }}>
         <Card style={{ boxShadow: 'var(--shadow-card)', flex: 1, minWidth: 260 }}>
@@ -223,7 +330,7 @@ export default function Reports() {
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={data.chartData}>
               <XAxis dataKey="label" stroke="var(--color-text-muted)" fontSize={11} />
-              <YAxis stroke="var(--color-text-muted)" fontSize={12} />
+              <YAxis stroke="var(--color-text-muted)" fontSize={12} tickFormatter={(v: number) => v.toLocaleString('id-ID')} width={70} />
               <Tooltip formatter={(value) => formatRupiah(Number(value))} />
               <Bar dataKey="sales" fill="#95B1EE" radius={[6, 6, 0, 0]} />
             </BarChart>
@@ -236,32 +343,11 @@ export default function Reports() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {data.bestSellers.map((item) => (
               <div key={item.name} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    background: 'var(--color-bg)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 700,
-                    color: 'var(--color-text)',
-                    flexShrink: 0,
-                  }}
-                >
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--color-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: 'var(--color-text)', flexShrink: 0 }}>
                   {item.name.charAt(0).toUpperCase()}
                 </div>
                 <span style={{ flex: 1, fontWeight: 600 }}>{item.name}</span>
-                <span
-                  style={{
-                    fontSize: 12,
-                    padding: '3px 10px',
-                    borderRadius: 20,
-                    background: 'rgba(149,177,238,0.2)',
-                    color: 'var(--color-primary)',
-                  }}
-                >
+                <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 20, background: 'rgba(149,177,238,0.2)', color: 'var(--color-primary)' }}>
                   {item.qty} terjual
                 </span>
               </div>

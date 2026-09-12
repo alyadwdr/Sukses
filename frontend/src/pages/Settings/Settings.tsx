@@ -4,13 +4,13 @@ import { useTheme } from '@/context/ThemeContext'
 import { useBusiness } from '@/context/BusinessContext'
 import { supabase } from '@/lib/supabase'
 import { useNavigate } from 'react-router-dom'
-import { Store } from 'lucide-react'
+import { Store, Moon, Sun, LogOut } from 'lucide-react'
 import Card from '@/components/Card/Card'
 import PageTopBar from '@/components/PageTopBar/PageTopBar'
 
 const inputStyle = {
   width: '100%',
-  padding: '10px 12px',
+  padding: '12px 14px',
   borderRadius: 10,
   border: '1px solid var(--color-border)',
   background: 'var(--color-bg)',
@@ -60,117 +60,137 @@ export default function Settings() {
     <div>
       <PageTopBar title="Pengaturan" showFilter={false} />
 
-      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-        <Card style={{ boxShadow: 'var(--shadow-card)', maxWidth: 480, flex: 1, minWidth: 320 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        <Card style={{ boxShadow: 'var(--shadow-card)', padding: 0, overflow: 'hidden', width: 320 }}>
+          <div style={{ background: 'var(--color-accent)', height: 90 }} />
+          <div style={{ padding: '0 24px 24px', marginTop: -45 }}>
             <div
               style={{
-                width: 56,
-                height: 56,
-                borderRadius: 14,
+                width: 90,
+                height: 90,
+                borderRadius: '50%',
                 background: 'var(--color-accent)',
+                border: '4px solid var(--color-card)',
                 color: 'var(--color-text)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontWeight: 700,
-                fontSize: 20,
-                flexShrink: 0,
+                fontSize: 28,
+                margin: '0 auto 12px',
               }}
             >
               {initials}
             </div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 17 }}>{email}</div>
-              <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Akun Pengguna</div>
-            </div>
-          </div>
 
-          <hr style={{ borderColor: 'var(--color-border)', marginBottom: 20 }} />
-
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              background: 'var(--color-bg)',
-              borderRadius: 14,
-              padding: '14px 18px',
-              marginBottom: 24,
-            }}
-          >
-            <div>
-              <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
-                Tampilan
-              </div>
-              <div style={{ fontWeight: 700 }}>{theme === 'dark' ? 'Tema Gelap' : 'Tema Terang'}</div>
+            <div style={{ textAlign: 'center', fontWeight: 700, color: 'var(--color-text)', marginBottom: 4 }}>
+              {email}
             </div>
+
+            <hr style={{ borderColor: 'var(--color-border)', margin: '20px 0' }} />
+
             <div
               style={{
-                display: 'inline-flex',
-                padding: 3,
-                borderRadius: 20,
-                background: 'var(--color-card)',
-                border: '1px solid var(--color-border)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 20,
               }}
             >
-              <button
-                onClick={() => theme !== 'light' && toggleTheme()}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: 16,
-                  border: 'none',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  background: theme === 'light' ? 'var(--color-primary)' : 'transparent',
-                  color: theme === 'light' ? '#fff' : 'var(--color-text)',
-                }}
-              >
-                Terang
-              </button>
-              <button
-                onClick={() => theme !== 'dark' && toggleTheme()}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: 16,
-                  border: 'none',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  background: theme === 'dark' ? 'var(--color-primary)' : 'transparent',
-                  color: theme === 'dark' ? '#fff' : 'var(--color-text)',
-                }}
-              >
-                Gelap
-              </button>
+              <div>
+                <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+                  Tema Tampilan
+                </div>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>{theme === 'dark' ? 'Gelap' : 'Terang'}</div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={() => theme !== 'light' && toggleTheme()}
+                  aria-label="Tema terang"
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: '50%',
+                    border: '1px solid var(--color-border)',
+                    background: theme === 'light' ? 'var(--color-primary)' : 'var(--color-bg)',
+                    color: theme === 'light' ? '#fff' : 'var(--color-text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Sun size={16} />
+                </button>
+                <button
+                  onClick={() => theme !== 'dark' && toggleTheme()}
+                  aria-label="Tema gelap"
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: '50%',
+                    border: '1px solid var(--color-border)',
+                    background: theme === 'dark' ? 'var(--color-primary)' : 'var(--color-bg)',
+                    color: theme === 'dark' ? '#fff' : 'var(--color-text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Moon size={16} />
+                </button>
+              </div>
+            </div>
+
+            <button
+              onClick={handleLogout}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                padding: 14,
+                borderRadius: 14,
+                border: 'none',
+                background: '#e74c3c',
+                color: '#fff',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              <LogOut size={16} /> Keluar
+            </button>
+          </div>
+        </Card>
+
+        <Card style={{ boxShadow: 'var(--shadow-card)', flex: 1, minWidth: 340, maxWidth: 480 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                background: 'var(--color-bg)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Store size={19} color="var(--color-text-muted)" />
+            </div>
+            <div>
+              <h3 style={{ fontSize: 16, marginBottom: 2 }}>Informasi Bisnis</h3>
+              <p style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+                Data untuk kop laporan PDF dan profil toko.
+              </p>
             </div>
           </div>
 
-          <button
-            onClick={handleLogout}
-            style={{
-              width: '100%',
-              padding: 14,
-              borderRadius: 14,
-              border: 'none',
-              background: '#e74c3c',
-              color: '#fff',
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            Keluar
-          </button>
-        </Card>
-
-        <Card style={{ boxShadow: 'var(--shadow-card)', maxWidth: 480, flex: 1, minWidth: 320 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-            <Store size={20} color="var(--color-text-muted)" />
-            <h3>Informasi Bisnis</h3>
-          </div>
-
-          <form onSubmit={handleSaveBusiness} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <form onSubmit={handleSaveBusiness} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
               <label style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 6, display: 'block' }}>
                 Nama Bisnis
@@ -194,23 +214,19 @@ export default function Settings() {
               type="submit"
               disabled={saving}
               style={{
-                padding: 12,
-                borderRadius: 10,
+                padding: 14,
+                borderRadius: 12,
                 border: 'none',
                 background: saved ? '#27ae60' : 'var(--color-primary)',
                 color: '#fff',
-                fontWeight: 600,
+                fontWeight: 700,
                 cursor: 'pointer',
-                marginTop: 6,
+                marginTop: 4,
               }}
             >
               {saving ? 'Menyimpan...' : saved ? 'Tersimpan' : 'Simpan Perubahan'}
             </button>
           </form>
-
-          <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 12 }}>
-            Nama bisnis ini otomatis muncul di sidebar, halaman login, dan sebagai judul laporan PDF. Alamat & telepon dipakai sebagai kop laporan.
-          </p>
         </Card>
       </div>
     </div>

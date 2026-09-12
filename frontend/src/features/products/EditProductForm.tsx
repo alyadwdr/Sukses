@@ -47,6 +47,7 @@ export default function EditProductForm({ product, onSuccess, onCancel }: EditPr
   const [minStock, setMinStock] = useState(String(product.min_stock))
   const [image, setImage] = useState<string | null>(product.image_url)
   const [saving, setSaving] = useState(false)
+  const [variant, setVariant] = useState(product.variant ?? '')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -69,6 +70,7 @@ export default function EditProductForm({ product, onSuccess, onCancel }: EditPr
         unit,
         min_stock: Number(minStock),
         image_url: imageUrl,
+        variant: variant || null,
       })
       .eq('id', product.id)
 

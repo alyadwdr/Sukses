@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Search, List, Grid2x2, LayoutGrid, ChevronDown, Pencil, Trash2, Info } from 'lucide-react'
+import { Plus, Search, List, Grid2x2, LayoutGrid, ChevronDown, Pencil, Trash2, Info, Check } from 'lucide-react'
 import { useProducts } from '@/features/products/useProducts'
 import AddProductForm from '@/features/products/AddProductForm'
 import EditProductForm from '@/features/products/EditProductForm'
@@ -27,16 +27,19 @@ const sizeConfig: Record<Exclude<ViewMode, 'list'>, { minWidth: number; avatar: 
   small: { minWidth: 100, avatar: 40, font: 11 },
 }
 
-const iconButtonStyle = {
-  width: 30,
-  height: 30,
-  borderRadius: 8,
-  border: '1px solid var(--color-border)',
-  background: 'var(--color-card)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  cursor: 'pointer',
+function iconButtonStyle(bg: string, color: string) {
+  return {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    border: 'none',
+    background: bg,
+    color,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+  }
 }
 
 export default function Products() {
@@ -140,7 +143,7 @@ export default function Products() {
                   boxShadow: 'var(--shadow-card)',
                   padding: 6,
                   zIndex: 10,
-                  width: 170,
+                  width: 190,
                 }}
               >
                 {viewOptions.map((opt) => (
@@ -153,7 +156,7 @@ export default function Products() {
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 8,
+                      justifyContent: 'space-between',
                       width: '100%',
                       padding: '8px 10px',
                       borderRadius: 6,
@@ -165,8 +168,11 @@ export default function Products() {
                       textAlign: 'left',
                     }}
                   >
-                    {opt.icon}
-                    {opt.label}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {opt.icon}
+                      {opt.label}
+                    </span>
+                    {viewMode === opt.value && <Check size={14} color="var(--color-primary)" />}
                   </button>
                 ))}
               </div>
@@ -182,6 +188,7 @@ export default function Products() {
               <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>
                 <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>No.</th>
                 <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Produk</th>
+                <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Varian</th>
                 <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Kategori</th>
                 <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Harga Beli</th>
                 <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Harga Jual</th>
@@ -195,6 +202,7 @@ export default function Products() {
                 <tr key={p.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                   <td style={{ padding: 14, color: 'var(--color-text-muted)' }}>{i + 1}</td>
                   <td style={{ padding: 14, fontWeight: 600 }}>{p.name}</td>
+                  <td style={{ padding: 14, color: 'var(--color-text-muted)' }}>{p.variant || '-'}</td>
                   <td style={{ padding: 14 }}>
                     <CategoryBadge category={p.category} />
                   </td>
@@ -204,14 +212,26 @@ export default function Products() {
                   <td style={{ padding: 14 }}>{p.unit}</td>
                   <td style={{ padding: 14 }}>
                     <div style={{ display: 'flex', gap: 6 }}>
-                      <button onClick={() => setHistoryProduct(p)} aria-label="Riwayat harga" style={iconButtonStyle}>
-                        <Info size={14} color="var(--color-text-muted)" />
+                      <button
+                        onClick={() => setHistoryProduct(p)}
+                        aria-label="Riwayat harga"
+                        style={iconButtonStyle('rgba(149,177,238,0.15)', 'var(--color-primary)')}
+                      >
+                        <Info size={14} />
                       </button>
-                      <button onClick={() => setEditingProduct(p)} aria-label="Edit" style={iconButtonStyle}>
-                        <Pencil size={14} color="var(--color-primary)" />
+                      <button
+                        onClick={() => setEditingProduct(p)}
+                        aria-label="Edit"
+                        style={iconButtonStyle('rgba(231,241,168,0.5)', '#7a8a2e')}
+                      >
+                        <Pencil size={14} />
                       </button>
-                      <button onClick={() => setDeletingProduct(p)} aria-label="Hapus" style={iconButtonStyle}>
-                        <Trash2 size={14} color="#c0392b" />
+                      <button
+                        onClick={() => setDeletingProduct(p)}
+                        aria-label="Hapus"
+                        style={iconButtonStyle('rgba(231,76,60,0.12)', '#c0392b')}
+                      >
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </td>
@@ -239,11 +259,19 @@ export default function Products() {
                 }}
               >
                 <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 4 }}>
-                  <button onClick={() => setEditingProduct(p)} aria-label="Edit" style={{ ...iconButtonStyle, width: 24, height: 24 }}>
-                    <Pencil size={11} color="var(--color-primary)" />
+                  <button
+                    onClick={() => setEditingProduct(p)}
+                    aria-label="Edit"
+                    style={{ ...iconButtonStyle('rgba(231,241,168,0.6)', '#7a8a2e'), width: 24, height: 24 }}
+                  >
+                    <Pencil size={11} />
                   </button>
-                  <button onClick={() => setDeletingProduct(p)} aria-label="Hapus" style={{ ...iconButtonStyle, width: 24, height: 24 }}>
-                    <Trash2 size={11} color="#c0392b" />
+                  <button
+                    onClick={() => setDeletingProduct(p)}
+                    aria-label="Hapus"
+                    style={{ ...iconButtonStyle('rgba(231,76,60,0.15)', '#c0392b'), width: 24, height: 24 }}
+                  >
+                    <Trash2 size={11} />
                   </button>
                 </div>
                 <div
@@ -269,6 +297,9 @@ export default function Products() {
                   )}
                 </div>
                 <div style={{ fontSize: sizeConfig[viewMode].font, fontWeight: 600 }}>{p.name}</div>
+                {p.variant && (
+                  <div style={{ fontSize: sizeConfig[viewMode].font - 2, color: 'var(--color-text-muted)' }}>{p.variant}</div>
+                )}
                 <div style={{ fontSize: sizeConfig[viewMode].font - 1, color: 'var(--color-text-muted)' }}>
                   Rp{p.selling_price.toLocaleString('id-ID')}
                 </div>

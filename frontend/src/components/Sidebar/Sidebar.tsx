@@ -7,10 +7,8 @@ import {
   Wallet,
   TrendingUp,
   BarChart3,
-  Bell,
   Settings as SettingsIcon,
 } from 'lucide-react'
-import { useNotifications } from '@/features/notifications/useNotifications'
 import { useBusiness } from '@/context/BusinessContext'
 
 const menuGroups = [
@@ -37,14 +35,12 @@ const menuGroups = [
   {
     label: 'Lainnya',
     items: [
-      { label: 'Notifikasi', path: '/dashboard/notifications', icon: Bell, end: false },
       { label: 'Pengaturan', path: '/dashboard/settings', icon: SettingsIcon, end: false },
     ],
   },
 ]
 
 export default function Sidebar() {
-  const { notifications } = useNotifications()
   const { business } = useBusiness()
 
   return (
@@ -99,19 +95,6 @@ export default function Sidebar() {
                     <Icon size={18} />
                     {item.label}
                   </span>
-                  {item.label === 'Notifikasi' && notifications.length > 0 && (
-                    <span
-                      style={{
-                        background: '#e74c3c',
-                        color: '#fff',
-                        fontSize: 11,
-                        padding: '2px 7px',
-                        borderRadius: 10,
-                      }}
-                    >
-                      {notifications.length}
-                    </span>
-                  )}
                 </NavLink>
               )
             })}

@@ -61,9 +61,12 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
   )
 
   function addToCart(product: Product) {
+    if (product.stock <= 0) return
+
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id)
       if (existing) {
+        if (existing.quantity >= product.stock) return prev
         return prev.map((item) =>
           item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
         )
@@ -78,7 +81,11 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
       return
     }
     setCart((prev) =>
-      prev.map((item) => (item.product.id === productId ? { ...item, quantity } : item))
+      prev.map((item) => {
+        if (item.product.id !== productId) return item
+        const clamped = Math.min(quantity, item.product.stock)
+        return { ...item, quantity: clamped }
+      })
     )
   }
 
@@ -270,7 +277,7 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
                   <div>
                     <div style={{ fontWeight: 600, fontSize: 14 }}>{p.name}</div>
                     <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-                      Rp{p.selling_price.toLocaleString('id-ID')}
+                      Rp{p.selling_price.toLocaleString('id-ID')} · Stok {p.stock}
                     </div>
                   </div>
                   <span
@@ -278,7 +285,7 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
                       width: 28,
                       height: 28,
                       borderRadius: 8,
-                      background: 'var(--color-primary)',
+                      background: p.stock <= 0 ? 'var(--color-border)' : 'var(--color-primary)',
                       color: '#fff',
                       display: 'flex',
                       alignItems: 'center',
@@ -336,7 +343,7 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
                   </div>
                   <div style={{ fontSize: sizeConfig[viewMode].font, fontWeight: 600 }}>{p.name}</div>
                   <div style={{ fontSize: sizeConfig[viewMode].font - 1, color: 'var(--color-text-muted)' }}>
-                    Rp{p.selling_price.toLocaleString('id-ID')}
+                    Rp{p.selling_price.toLocaleString('id-ID')} · Stok {p.stock}
                   </div>
                 </div>
               ))}
@@ -369,7 +376,16 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
                   <span style={{ fontSize: 13 }}>{item.quantity}</span>
                   <button
                     onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                    style={{ width: 22, height: 22, borderRadius: 6, border: '1px solid var(--color-border)', background: 'var(--color-card)' }}
+                    disabled={item.quantity >= item.product.stock}
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 6,
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-card)',
+                      opacity: item.quantity >= item.product.stock ? 0.4 : 1,
+                      cursor: item.quantity >= item.product.stock ? 'not-allowed' : 'pointer',
+                    }}
                   >
                     +
                   </button>

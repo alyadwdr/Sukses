@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useBusinessFilter } from '@/context/BusinessFilterContext'
+import { filterItemsByCategory } from '@/lib/categoryFilter'
 
 export type ChartPeriod = '7d' | '1m' | '1y'
 
@@ -20,9 +21,12 @@ const TRX_SELECT = `
   transaction_items ( quantity, subtotal, products ( name, category, purchase_price ) )
 `
 
-function matchesFilter(trx: any, filter: string) {
-  if (filter === 'all') return true
-  return trx.transaction_items.some((item: any) => item.products?.category === filter)
+function relevantItems(trx: any, filter: string) {
+  return filterItemsByCategory(trx.transaction_items, filter as any)
+}
+
+function trxSalesFor(trx: any, filter: string) {
+  return relevantItems(trx, filter).reduce((s: number, i: any) => s + i.subtotal, 0)
 }
 
 export function useDashboardData(period: ChartPeriod) {
@@ -67,14 +71,15 @@ export function useDashboardData(period: ChartPeriod) {
         supabase.from('products').select('id, name, stock, unit, min_stock').order('stock', { ascending: true }),
       ])
 
-    const relevantPeriodTrx = (periodTrx ?? []).filter((trx) => matchesFilter(trx, filter))
-    const relevantLatestTrx = (latestTrx ?? []).filter((trx) => matchesFilter(trx, filter))
+    // Hanya simpan transaksi yang punya minimal 1 item sesuai kategori filter
+    const relevantPeriodTrx = (periodTrx ?? []).filter((trx) => relevantItems(trx, filter).length > 0)
+    const relevantLatestTrx = (latestTrx ?? []).filter((trx) => relevantItems(trx, filter).length > 0)
 
     const todayTrx = relevantPeriodTrx.filter((trx) => new Date(trx.created_at) >= todayStart)
-    const todaySales = todayTrx.reduce((sum, trx) => sum + trx.total, 0)
+    const todaySales = todayTrx.reduce((sum, trx) => sum + trxSalesFor(trx, filter), 0)
     const todayCostOfGoods = todayTrx.reduce(
       (sum, trx) =>
-        sum + trx.transaction_items.reduce((s: number, i: any) => s + i.products.purchase_price * i.quantity, 0),
+        sum + relevantItems(trx, filter).reduce((s: number, i: any) => s + i.products.purchase_price * i.quantity, 0),
       0
     )
     const todayExpenses = (todayExpensesData ?? []).reduce((sum, e) => sum + e.amount, 0)
@@ -89,7 +94,7 @@ export function useDashboardData(period: ChartPeriod) {
         const dayStr = day.toISOString().split('T')[0]
         const daySales = relevantPeriodTrx
           .filter((trx) => trx.created_at.startsWith(dayStr))
-          .reduce((sum, trx) => sum + trx.total, 0)
+          .reduce((sum, trx) => sum + trxSalesFor(trx, filter), 0)
         const dayExpenses = (periodExpenses ?? [])
           .filter((e) => e.expense_date === dayStr)
           .reduce((sum, e) => sum + e.amount, 0)
@@ -103,7 +108,7 @@ export function useDashboardData(period: ChartPeriod) {
         const dayStr = day.toISOString().split('T')[0]
         const daySales = relevantPeriodTrx
           .filter((trx) => trx.created_at.startsWith(dayStr))
-          .reduce((sum, trx) => sum + trx.total, 0)
+          .reduce((sum, trx) => sum + trxSalesFor(trx, filter), 0)
         const dayExpenses = (periodExpenses ?? [])
           .filter((e) => e.expense_date === dayStr)
           .reduce((sum, e) => sum + e.amount, 0)
@@ -116,7 +121,7 @@ export function useDashboardData(period: ChartPeriod) {
             const d = new Date(trx.created_at)
             return d.getMonth() === i && d.getFullYear() === rangeStart.getFullYear()
           })
-          .reduce((sum, trx) => sum + trx.total, 0)
+          .reduce((sum, trx) => sum + trxSalesFor(trx, filter), 0)
         const monthExpenses = (periodExpenses ?? [])
           .filter((e) => {
             const d = new Date(e.expense_date)
@@ -128,19 +133,22 @@ export function useDashboardData(period: ChartPeriod) {
       })
     }
 
-    const recentTransactions = relevantLatestTrx.slice(0, 10).map((trx) => ({
-      id: trx.id,
-      trx_number: trx.trx_number,
-      created_at: trx.created_at,
-      total: trx.total,
-      itemCount: trx.transaction_items.reduce((sum: number, item: any) => sum + item.quantity, 0),
-    }))
+    const recentTransactions = relevantLatestTrx.slice(0, 10).map((trx) => {
+      const items = relevantItems(trx, filter)
+      return {
+        id: trx.id,
+        trx_number: trx.trx_number,
+        created_at: trx.created_at,
+        total: items.reduce((s: number, i: any) => s + i.subtotal, 0),
+        itemCount: items.reduce((sum: number, item: any) => sum + item.quantity, 0),
+      }
+    })
 
     const lowStockProducts = (lowStock ?? []).filter((p) => p.stock <= p.min_stock).slice(0, 5)
 
     const productQty: Record<string, number> = {}
     relevantPeriodTrx.forEach((trx) => {
-      trx.transaction_items.forEach((item: any) => {
+      relevantItems(trx, filter).forEach((item: any) => {
         const name = item.products?.name ?? 'Produk'
         productQty[name] = (productQty[name] ?? 0) + item.quantity
       })
