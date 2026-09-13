@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import ImageCropUpload from '@/components/ImageCropUpload/ImageCropUpload'
+import FormattedNumberInput from '@/components/FormattedNumberInput/FormattedNumberInput'
 
 interface AddProductFormProps {
   onSuccess: () => void
@@ -18,6 +19,13 @@ const inputStyle = {
   fontFamily: 'var(--font-body)',
 }
 
+const labelStyle = {
+  fontSize: 12,
+  color: 'var(--color-text-muted)',
+  marginBottom: 6,
+  display: 'block',
+}
+
 export default function AddProductForm({ onSuccess, onCancel }: AddProductFormProps) {
   const [name, setName] = useState('')
   const [category, setCategory] = useState<'sembako' | 'plastik'>('sembako')
@@ -31,46 +39,46 @@ export default function AddProductForm({ onSuccess, onCancel }: AddProductFormPr
   const [image, setImage] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
-  e.preventDefault()
-  setSaving(true)
+    e.preventDefault()
+    setSaving(true)
 
-  const { data: inserted, error } = await supabase
-  .from('products')
-  .insert({
-    name,
-    category,
-    variant: variant || null,
-    purchase_price: Number(purchasePrice),
-    selling_price: Number(sellingPrice),
-    unit,
-    stock: Number(stock),
-    min_stock: Number(minStock),
-  })
-  .select()
-  .single()
+    // 1. Upload foto dulu (kalau ada), sebelum produk dibuat sama sekali
+    let imageUrl: string | null = null
+    if (image) {
+      const path = `${crypto.randomUUID()}.jpg`
+      const res = await fetch(image)
+      const blob = await res.blob()
+      const { error: uploadError } = await supabase.storage.from('product-images').upload(path, blob, {
+        contentType: 'image/jpeg',
+      })
+      if (uploadError) {
+        console.error('Gagal mengunggah foto produk:', uploadError)
+      } else {
+        const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path)
+        imageUrl = urlData.publicUrl
+      }
+    }
 
-if (error) {
-  console.error('Gagal menyimpan produk:', error)
-}
+    // 2. Baru insert produk, dengan image_url (kalau ada) langsung kesertain dalam satu langkah
+    const { error } = await supabase.from('products').insert({
+      name,
+      category,
+      variant: variant || null,
+      purchase_price: Number(purchasePrice),
+      selling_price: Number(sellingPrice),
+      unit,
+      stock: Number(stock),
+      min_stock: Number(minStock),
+      image_url: imageUrl,
+    })
 
-if (!error && inserted && image) {
-  const res = await fetch(image)
-  const blob = await res.blob()
-  const path = `${inserted.id}-${Date.now()}.jpg`
-  const { error: uploadError } = await supabase.storage.from('product-images').upload(path, blob, {
-    contentType: 'image/jpeg',
-  })
-  if (uploadError) {
-    console.error('Gagal mengunggah foto produk:', uploadError)
-  } else {
-    const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path)
-    await supabase.from('products').update({ image_url: urlData.publicUrl }).eq('id', inserted.id)
+    if (error) {
+      console.error('Gagal menyimpan produk:', error)
+    }
+
+    setSaving(false)
+    if (!error) onSuccess()
   }
-}
-
-  setSaving(false)
-  if (!error) onSuccess()
-}
 
   return (
     <form onSubmit={handleSubmit}>
@@ -97,79 +105,90 @@ if (!error && inserted && image) {
       </div>
 
       <div style={{ marginBottom: 20 }}>
+        <label style={labelStyle}>Foto Produk</label>
         <ImageCropUpload value={image} onChange={setImage} />
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <input
-          placeholder="Nama Produk"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-          style={inputStyle}
-        />
-
-        <input
-  placeholder="Varian / Ukuran (cth. 1kg, 250ml) — opsional"
-  value={variant}
-  onChange={(e) => setVariant(e.target.value)}
-  style={inputStyle}
-/>
-
-        <div style={{ display: 'flex', gap: 14 }}>
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value as 'sembako' | 'plastik')}
-            style={{ ...inputStyle, flex: 1 }}
-          >
-            <option value="sembako">Sembako</option>
-            <option value="plastik">Plastik</option>
-          </select>
+        <div>
+          <label style={labelStyle}>Nama Produk</label>
           <input
-            placeholder="Satuan (cth. pcs)"
-            value={unit}
-            onChange={(e) => setUnit(e.target.value)}
+            placeholder="Contoh: Beras"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             required
-            style={{ ...inputStyle, flex: 1 }}
+            style={inputStyle}
+          />
+        </div>
+
+        <div>
+          <label style={labelStyle}>Varian / Ukuran (opsional)</label>
+          <input
+            placeholder="Contoh: 1kg, 250ml"
+            value={variant}
+            onChange={(e) => setVariant(e.target.value)}
+            style={inputStyle}
           />
         </div>
 
         <div style={{ display: 'flex', gap: 14 }}>
-          <input
-            type="number"
-            placeholder="Harga Beli"
-            value={purchasePrice}
-            onChange={(e) => setPurchasePrice(e.target.value)}
-            required
-            style={{ ...inputStyle, flex: 1 }}
-          />
-          <input
-            type="number"
-            placeholder="Harga Jual"
-            value={sellingPrice}
-            onChange={(e) => setSellingPrice(e.target.value)}
-            required
-            style={{ ...inputStyle, flex: 1 }}
-          />
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Kategori</label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value as 'sembako' | 'plastik')}
+              style={inputStyle}
+            >
+              <option value="sembako">Sembako</option>
+              <option value="plastik">Plastik</option>
+            </select>
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Satuan</label>
+            <input
+              placeholder="Contoh: pcs, pak, kg"
+              value={unit}
+              onChange={(e) => setUnit(e.target.value)}
+              required
+              style={inputStyle}
+            />
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: 14 }}>
-          <input
-            type="number"
-            placeholder="Stok Awal"
-            value={stock}
-            onChange={(e) => setStock(e.target.value)}
-            required
-            style={{ ...inputStyle, flex: 1 }}
-          />
-          <input
-            type="number"
-            placeholder="Stok Minimum"
-            value={minStock}
-            onChange={(e) => setMinStock(e.target.value)}
-            required
-            style={{ ...inputStyle, flex: 1 }}
-          />
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Harga Beli</label>
+            <FormattedNumberInput placeholder="0" value={purchasePrice} onChange={setPurchasePrice} required style={inputStyle} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Harga Jual</label>
+            <FormattedNumberInput placeholder="0" value={sellingPrice} onChange={setSellingPrice} required style={inputStyle} />
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 14 }}>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Stok Awal</label>
+            <input
+              type="number"
+              placeholder="0"
+              value={stock}
+              onChange={(e) => setStock(e.target.value)}
+              required
+              style={inputStyle}
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Stok Minimum</label>
+            <input
+              type="number"
+              placeholder="0"
+              value={minStock}
+              onChange={(e) => setMinStock(e.target.value)}
+              required
+              style={inputStyle}
+            />
+          </div>
         </div>
       </div>
 

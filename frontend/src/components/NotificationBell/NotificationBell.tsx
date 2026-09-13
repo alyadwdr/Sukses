@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Bell } from 'lucide-react'
-import { useNotifications } from '@/features/notifications/useNotifications'
+import { useNotifications } from '@/context/NotificationsContext'
 
 export default function NotificationBell() {
   const { notifications } = useNotifications()

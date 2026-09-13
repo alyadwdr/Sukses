@@ -4,6 +4,7 @@ import { BusinessFilterProvider } from '@/context/BusinessFilterContext'
 import { BusinessProvider } from '@/context/BusinessContext'
 import { AuthProvider } from '@/context/AuthContext'
 import { SidebarProvider } from '@/context/SidebarContext'
+import { NotificationsProvider } from '@/context/NotificationsContext'
 import ProtectedRoute from '@/components/ProtectedRoute/ProtectedRoute'
 import MainLayout from '@/layouts/MainLayout'
 import Login from '@/pages/Login/Login'
@@ -24,36 +25,38 @@ export default function App() {
         <ThemeProvider>
           <BusinessFilterProvider>
             <SidebarProvider>
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/login" element={<Login />} />
-                  <Route
-                    path="/"
-                    element={
-                      <ProtectedRoute>
-                        <BusinessSelection />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/dashboard"
-                    element={
-                      <ProtectedRoute>
-                        <MainLayout />
-                      </ProtectedRoute>
-                    }
-                  >
-                    <Route index element={<Dashboard />} />
-                    <Route path="transactions" element={<Transactions />} />
-                    <Route path="products" element={<Products />} />
-                    <Route path="inventory" element={<Inventory />} />
-                    <Route path="expenses" element={<Expenses />} />
-                    <Route path="income" element={<Income />} />
-                    <Route path="reports" element={<Reports />} />
-                    <Route path="settings" element={<Settings />} />
-                  </Route>
-                </Routes>
-              </BrowserRouter>
+              <NotificationsProvider>
+                <BrowserRouter>
+                  <Routes>
+                    <Route path="/login" element={<Login />} />
+                    <Route
+                      path="/"
+                      element={
+                        <ProtectedRoute>
+                          <BusinessSelection />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/dashboard"
+                      element={
+                        <ProtectedRoute>
+                          <MainLayout />
+                        </ProtectedRoute>
+                      }
+                    >
+                      <Route index element={<Dashboard />} />
+                      <Route path="transactions" element={<Transactions />} />
+                      <Route path="products" element={<Products />} />
+                      <Route path="inventory" element={<Inventory />} />
+                      <Route path="expenses" element={<Expenses />} />
+                      <Route path="income" element={<Income />} />
+                      <Route path="reports" element={<Reports />} />
+                      <Route path="settings" element={<Settings />} />
+                    </Route>
+                  </Routes>
+                </BrowserRouter>
+              </NotificationsProvider>
             </SidebarProvider>
           </BusinessFilterProvider>
         </ThemeProvider>

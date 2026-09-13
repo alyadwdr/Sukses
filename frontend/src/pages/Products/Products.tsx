@@ -9,6 +9,7 @@ import Modal from '@/components/Modal/Modal'
 import ConfirmModal from '@/components/ConfirmModal/ConfirmModal'
 import CategoryBadge from '@/components/CategoryBadge/CategoryBadge'
 import PageTopBar from '@/components/PageTopBar/PageTopBar'
+import Loading from '@/components/Loading/Loading'
 import { supabase } from '@/lib/supabase'
 import type { Product } from '@/types/product'
 
@@ -181,7 +182,7 @@ export default function Products() {
         </div>
 
         {loading ? (
-          <p>Memuat...</p>
+          <Loading />
         ) : viewMode === 'list' ? (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>

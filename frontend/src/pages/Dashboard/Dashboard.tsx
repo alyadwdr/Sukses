@@ -5,6 +5,7 @@ import { ThumbsUp } from 'lucide-react'
 import { useDashboardData, type ChartPeriod } from '@/features/dashboard/useDashboardData'
 import Card from '@/components/Card/Card'
 import PageTopBar from '@/components/PageTopBar/PageTopBar'
+import Loading from '@/components/Loading/Loading'
 
 function formatRupiah(value: number) {
   return `Rp${value.toLocaleString('id-ID')}`
@@ -24,7 +25,7 @@ export default function Dashboard() {
   const [period, setPeriod] = useState<ChartPeriod>('7d')
   const { data, loading } = useDashboardData(period)
 
-  if (loading || !data) return <p>Memuat...</p>
+  if (loading || !data) return <Loading />
 
   return (
     <div>
@@ -40,20 +41,20 @@ export default function Dashboard() {
             <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 6 }}>Pengeluaran</div>
             <div style={{ fontSize: 22, fontWeight: 700 }}>{formatRupiah(data.todayExpenses)}</div>
           </Card>
-          <Card style={{ boxShadow: 'var(--shadow-card)' }}>
-            <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 6 }}>Transaksi</div>
-            <div style={{ fontSize: 22, fontWeight: 700 }}>{data.todayTransactionCount} Total</div>
-          </Card>
           <Card style={{ boxShadow: 'var(--shadow-card)', background: 'var(--color-text)' }}>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 6 }}>Laba Bersih</div>
             <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-accent)' }}>
               {formatRupiah(data.todayNetProfit)}
             </div>
           </Card>
+          <Card style={{ boxShadow: 'var(--shadow-card)' }}>
+            <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 6 }}>Transaksi</div>
+            <div style={{ fontSize: 22, fontWeight: 700 }}>{data.todayTransactionCount} Total</div>
+          </Card>
         </div>
 
         <Card style={{ flex: 1, boxShadow: 'var(--shadow-card)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <h3>Ringkasan Penjualan</h3>
             <div style={{ display: 'inline-flex', padding: 4, borderRadius: 20, background: 'var(--color-bg)' }}>
               {periodOptions.map((opt) => (
@@ -76,7 +77,34 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 16, marginBottom: 8, fontSize: 12, color: 'var(--color-text-muted)' }}>
+          <ResponsiveContainer width="100%" height={340}>
+            <BarChart data={data.chartData}>
+              <XAxis dataKey="label" stroke="var(--color-text-muted)" fontSize={11} />
+              <YAxis
+                stroke="var(--color-text-muted)"
+                fontSize={12}
+                tickFormatter={(value: number) => value.toLocaleString('id-ID')}
+                width={70}
+              />
+              <Tooltip
+                formatter={(value, name) => [
+                  formatRupiah(Number(value)),
+                  name === 'sales' ? 'Penjualan' : name === 'expenses' ? 'Pengeluaran' : String(name),
+                ]}
+                labelFormatter={(label) => `Tanggal ${label}`}
+                contentStyle={{
+                  background: 'var(--color-card)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 10,
+                  color: 'var(--color-text)',
+                }}
+              />
+              <Bar dataKey="sales" fill="#95B1EE" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="expenses" fill="#364C84" radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 8, fontSize: 12, color: 'var(--color-text-muted)' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ width: 8, height: 8, borderRadius: 2, background: '#95B1EE', display: 'inline-block' }} />
               Penjualan
@@ -86,21 +114,6 @@ export default function Dashboard() {
               Pengeluaran
             </span>
           </div>
-
-          <ResponsiveContainer width="100%" height={360}>
-  <BarChart data={data.chartData}>
-    <XAxis dataKey="label" stroke="var(--color-text-muted)" fontSize={11} />
-    <YAxis
-      stroke="var(--color-text-muted)"
-      fontSize={12}
-      tickFormatter={(value: number) => value.toLocaleString('id-ID')}
-      width={70}
-    />
-    <Tooltip formatter={(value) => formatRupiah(Number(value))} />
-    <Bar dataKey="sales" fill="#95B1EE" radius={[6, 6, 0, 0]} />
-    <Bar dataKey="expenses" fill="#364C84" radius={[6, 6, 0, 0]} />
-  </BarChart>
-</ResponsiveContainer>
         </Card>
       </div>
 
@@ -209,7 +222,15 @@ export default function Dashboard() {
                       <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => formatRupiah(Number(value))} />
+                  <Tooltip
+                    formatter={(value, name) => [`${value} terjual`, name]}
+                    contentStyle={{
+                      background: 'var(--color-card)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: 10,
+                      color: 'var(--color-text)',
+                    }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 100, overflowY: 'auto', marginTop: 8 }}>

@@ -1,11 +1,13 @@
-import { useMemo, useState } from 'react'
-import { Plus } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { Plus, Search } from 'lucide-react'
 import NewTransactionForm from '@/features/transactions/NewTransactionForm'
 import { useTransactions } from '@/features/transactions/useTransactions'
 import AllTransactionsTable from '@/features/transactions/AllTransactionsTable'
 import ReceiptCard from '@/features/transactions/ReceiptCard'
 import Card from '@/components/Card/Card'
 import PageTopBar from '@/components/PageTopBar/PageTopBar'
+import Loading from '@/components/Loading/Loading'
 
 type ViewMode = 'all' | 'receipts'
 type TimeFilter = 'all' | 'today' | 'month' | 'year' | 'custom'
@@ -27,15 +29,40 @@ const dateInputStyle = {
   fontSize: 13,
 }
 
+const searchInputStyle = {
+  width: '100%',
+  padding: '10px 12px 10px 38px',
+  borderRadius: 10,
+  border: '1px solid var(--color-border)',
+  background: 'var(--color-bg)',
+  color: 'var(--color-text)',
+}
+
 export default function Transactions() {
+  const [searchParams] = useSearchParams()
+  const highlightTrx = searchParams.get('highlight')
+
   const [showForm, setShowForm] = useState(false)
-  const [view, setView] = useState<ViewMode>('all')
+  const [view, setView] = useState<ViewMode>(highlightTrx ? 'receipts' : 'all')
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [appliedFrom, setAppliedFrom] = useState('')
   const [appliedTo, setAppliedTo] = useState('')
+  const [search, setSearch] = useState('')
   const { transactions, loading, refetch } = useTransactions()
+
+  useEffect(() => {
+    if (highlightTrx) setView('receipts')
+  }, [highlightTrx])
+
+  useEffect(() => {
+    if (!highlightTrx || loading) return
+    const el = document.getElementById(`receipt-${highlightTrx}`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [highlightTrx, loading, transactions])
 
   const timeFilteredTransactions = useMemo(() => {
     if (timeFilter === 'all') return transactions
@@ -69,6 +96,16 @@ export default function Transactions() {
       return d >= start! && d <= end!
     })
   }, [transactions, timeFilter, appliedFrom, appliedTo])
+
+  const searchedTransactions = useMemo(() => {
+    if (!search.trim()) return timeFilteredTransactions
+    const q = search.toLowerCase()
+    return timeFilteredTransactions.filter(
+      (trx) =>
+        trx.trx_number.toLowerCase().includes(q) ||
+        trx.transaction_items.some((item) => item.products.name.toLowerCase().includes(q))
+    )
+  }, [timeFilteredTransactions, search])
 
   function handleApplyCustom() {
     setAppliedFrom(customFrom)
@@ -147,67 +184,83 @@ export default function Transactions() {
             </button>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
-            <div
-              style={{
-                display: 'inline-flex',
-                padding: 4,
-                borderRadius: 20,
-                background: 'var(--color-bg)',
-                border: '1px solid var(--color-border)',
-              }}
-            >
-              {timeOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setTimeFilter(opt.value)}
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: 16,
-                    border: 'none',
-                    fontSize: 13,
-                    cursor: 'pointer',
-                    background: timeFilter === opt.value ? 'var(--color-primary)' : 'transparent',
-                    color: timeFilter === opt.value ? '#fff' : 'var(--color-text)',
-                  }}
-                >
-                  {opt.label}
-                </button>
-              ))}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  padding: 4,
+                  borderRadius: 20,
+                  background: 'var(--color-bg)',
+                  border: '1px solid var(--color-border)',
+                }}
+              >
+                {timeOptions.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setTimeFilter(opt.value)}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: 16,
+                      border: 'none',
+                      fontSize: 13,
+                      cursor: 'pointer',
+                      background: timeFilter === opt.value ? 'var(--color-primary)' : 'transparent',
+                      color: timeFilter === opt.value ? '#fff' : 'var(--color-text)',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              {timeFilter === 'custom' && (
+                <>
+                  <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} style={dateInputStyle} />
+                  <span style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>sampai</span>
+                  <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} style={dateInputStyle} />
+                  <button
+                    onClick={handleApplyCustom}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: 8,
+                      border: 'none',
+                      background: 'var(--color-primary)',
+                      color: '#fff',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Terapkan
+                  </button>
+                </>
+              )}
             </div>
 
-            {timeFilter === 'custom' && (
-              <>
-                <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} style={dateInputStyle} />
-                <span style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>sampai</span>
-                <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} style={dateInputStyle} />
-                <button
-                  onClick={handleApplyCustom}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: 8,
-                    border: 'none',
-                    background: 'var(--color-primary)',
-                    color: '#fff',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Terapkan
-                </button>
-              </>
-            )}
+            <div style={{ position: 'relative', width: 240 }}>
+              <Search
+                size={16}
+                color="var(--color-text-muted)"
+                style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }}
+              />
+              <input
+                placeholder="Cari no. struk / produk..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={searchInputStyle}
+              />
+            </div>
           </div>
 
           {loading ? (
-            <p>Memuat...</p>
+            <Loading />
           ) : view === 'all' ? (
-            <AllTransactionsTable transactions={timeFilteredTransactions} />
+            <AllTransactionsTable transactions={searchedTransactions} />
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-              {timeFilteredTransactions.map((trx) => (
-                <ReceiptCard key={trx.id} transaction={trx} />
+              {searchedTransactions.map((trx) => (
+                <ReceiptCard key={trx.id} transaction={trx} highlighted={trx.trx_number === highlightTrx} />
               ))}
             </div>
           )}

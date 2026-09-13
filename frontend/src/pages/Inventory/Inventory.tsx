@@ -6,7 +6,9 @@ import StockInForm from '@/features/inventory/StockInForm'
 import Card from '@/components/Card/Card'
 import PageTopBar from '@/components/PageTopBar/PageTopBar'
 import CategoryBadge from '@/components/CategoryBadge/CategoryBadge'
+import Loading from '@/components/Loading/Loading'
 import { useBusinessFilter } from '@/context/BusinessFilterContext'
+import { useNotifications } from '@/context/NotificationsContext'
 
 type ViewMode = 'list' | 'large' | 'medium' | 'small'
 type TimeFilter = 'all' | 'today' | 'month' | 'year' | 'custom'
@@ -105,7 +107,7 @@ function ViewSwitcher({ value, onChange }: { value: ViewMode; onChange: (v: View
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 8,
+                justifyContent: 'space-between',
                 width: '100%',
                 padding: '8px 10px',
                 borderRadius: 6,
@@ -117,8 +119,11 @@ function ViewSwitcher({ value, onChange }: { value: ViewMode; onChange: (v: View
                 textAlign: 'left',
               }}
             >
-              {opt.icon}
-              {opt.label}
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {opt.icon}
+                {opt.label}
+              </span>
+              {value === opt.value && <span style={{ color: 'var(--color-primary)' }}>✓</span>}
             </button>
           ))}
         </div>
@@ -166,6 +171,7 @@ export default function Inventory() {
   const { products, refetch: refetchProducts } = useProducts()
   const { movements, loading, refetch: refetchMovements } = useStockMovements()
   const { filter } = useBusinessFilter()
+  const { refetch: refetchNotifications } = useNotifications()
 
   const [showForm, setShowForm] = useState(false)
   const [activeSlide, setActiveSlide] = useState(0)
@@ -186,6 +192,7 @@ export default function Inventory() {
     setShowForm(false)
     refetchProducts()
     refetchMovements()
+    refetchNotifications()
   }
 
   function handlePointerDown(e: React.PointerEvent) {
@@ -211,12 +218,10 @@ export default function Inventory() {
     }
   }
 
-  // Peta produk -> tanggal update stok paling baru (dari daftar movements yang sudah urut terbaru dulu)
   const lastUpdateMap = useMemo(() => {
     const map: Record<string, string> = {}
     for (const m of movements) {
-      const key = (m as any).product_id ?? m.products.name
-      if (!map[key]) map[key] = m.created_at
+      if (!map[m.product_id]) map[m.product_id] = m.created_at
     }
     return map
   }, [movements])
@@ -290,18 +295,18 @@ export default function Inventory() {
       />
 
       <div
-  style={{
-    maxHeight: showForm ? 420 : 0,
-    opacity: showForm ? 1 : 0,
-    overflow: showForm ? 'visible' : 'hidden',
-    transition: 'max-height 0.3s ease, opacity 0.25s ease, margin-bottom 0.3s ease',
-    marginBottom: showForm ? 24 : 0,
-  }}
->
-  <Card style={{ boxShadow: 'var(--shadow-card)' }}>
-    <StockInForm products={products} onSuccess={handleStockInSuccess} />
-  </Card>
-</div>
+        style={{
+          maxHeight: showForm ? 420 : 0,
+          opacity: showForm ? 1 : 0,
+          overflow: showForm ? 'visible' : 'hidden',
+          transition: 'max-height 0.3s ease, opacity 0.25s ease, margin-bottom 0.3s ease',
+          marginBottom: showForm ? 24 : 0,
+        }}
+      >
+        <Card style={{ boxShadow: 'var(--shadow-card)' }}>
+          <StockInForm products={products} onSuccess={handleStockInSuccess} />
+        </Card>
+      </div>
 
       <div style={{ marginBottom: 16 }}>
         <DotIndicator activeSlide={activeSlide} onSelect={setActiveSlide} />
@@ -331,7 +336,9 @@ export default function Inventory() {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>
+                      <th style={thStyle}>No.</th>
                       <th style={thStyle}>Produk</th>
+                      <th style={thStyle}>Varian</th>
                       <th style={thStyle}>Kategori</th>
                       <th style={thStyle}>Stok Saat Ini</th>
                       <th style={thStyle}>Satuan</th>
@@ -340,9 +347,11 @@ export default function Inventory() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredProducts.map((p) => (
+                    {filteredProducts.map((p, i) => (
                       <tr key={p.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                        <td style={{ padding: 14, color: 'var(--color-text-muted)' }}>{i + 1}</td>
                         <td style={{ padding: 14, fontWeight: 600 }}>{p.name}</td>
+                        <td style={{ padding: 14, color: 'var(--color-text-muted)' }}>{p.variant || '-'}</td>
                         <td style={{ padding: 14 }}>
                           <CategoryBadge category={p.category} />
                         </td>
@@ -391,6 +400,9 @@ export default function Inventory() {
                         {p.image_url ? <img src={p.image_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : p.name.charAt(0).toUpperCase()}
                       </div>
                       <div style={{ fontSize: sizeConfig[stockView].font, fontWeight: 600 }}>{p.name}</div>
+                      {p.variant && (
+                        <div style={{ fontSize: sizeConfig[stockView].font - 2, color: 'var(--color-text-muted)' }}>{p.variant}</div>
+                      )}
                       <div style={{ fontSize: sizeConfig[stockView].font - 1, color: 'var(--color-text-muted)' }}>
                         {p.stock} {p.unit}
                       </div>
@@ -451,23 +463,27 @@ export default function Inventory() {
               </div>
 
               {loading ? (
-                <p>Memuat...</p>
+                <Loading />
               ) : historyView === 'list' ? (
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>
+                      <th style={thStyle}>No.</th>
                       <th style={thStyle}>Tanggal</th>
                       <th style={thStyle}>Produk</th>
+                      <th style={thStyle}>Varian</th>
                       <th style={thStyle}>Kategori</th>
                       <th style={thStyle}>Perubahan</th>
                       <th style={thStyle}>Alasan</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredMovements.map((m) => (
+                    {filteredMovements.map((m, i) => (
                       <tr key={m.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                        <td style={{ padding: 14, color: 'var(--color-text-muted)' }}>{i + 1}</td>
                         <td style={{ padding: 14 }}>{new Date(m.created_at).toLocaleDateString('id-ID')}</td>
                         <td style={{ padding: 14, fontWeight: 600 }}>{m.products.name}</td>
+                        <td style={{ padding: 14, color: 'var(--color-text-muted)' }}>{m.products.variant || '-'}</td>
                         <td style={{ padding: 14 }}>
                           <CategoryBadge category={m.products.category} />
                         </td>
@@ -504,6 +520,9 @@ export default function Inventory() {
                         {m.products.name.charAt(0).toUpperCase()}
                       </div>
                       <div style={{ fontSize: sizeConfig[historyView].font, fontWeight: 600 }}>{m.products.name}</div>
+                      {m.products.variant && (
+                        <div style={{ fontSize: sizeConfig[historyView].font - 2, color: 'var(--color-text-muted)' }}>{m.products.variant}</div>
+                      )}
                       <div style={{ fontSize: sizeConfig[historyView].font - 1, color: m.change > 0 ? '#27ae60' : '#c0392b' }}>
                         {m.change > 0 ? '+' : ''}
                         {m.change} {m.products.unit}

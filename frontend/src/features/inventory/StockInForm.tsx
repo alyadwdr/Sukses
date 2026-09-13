@@ -18,16 +18,40 @@ const inputStyle = {
 }
 
 export default function StockInForm({ products, onSuccess }: StockInFormProps) {
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [selectedName, setSelectedName] = useState('')
+  const [selectedProductId, setSelectedProductId] = useState('')
   const [search, setSearch] = useState('')
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [quantity, setQuantity] = useState('')
   const [saving, setSaving] = useState(false)
 
-  const filteredOptions = useMemo(
-    () => products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase())),
-    [products, search]
-  )
+  // Kelompokkan produk berdasarkan nama, biar ketahuan mana yang punya lebih dari 1 varian
+  const groupedByName = useMemo(() => {
+    const map = new Map<string, Product[]>()
+    for (const p of products) {
+      const list = map.get(p.name) ?? []
+      list.push(p)
+      map.set(p.name, list)
+    }
+    return map
+  }, [products])
+
+  const uniqueNames = Array.from(groupedByName.keys())
+  const filteredNames = uniqueNames.filter((n) => n.toLowerCase().includes(search.toLowerCase()))
+
+  const variantsForSelectedName = selectedName ? groupedByName.get(selectedName) ?? [] : []
+  const hasMultipleVariants = variantsForSelectedName.length > 1
+
+  const selectedProduct = variantsForSelectedName.find((p) => p.id === selectedProductId) ?? null
+
+  function handleSelectName(name: string) {
+    setSelectedName(name)
+    setDropdownOpen(false)
+    setSearch('')
+    const variants = groupedByName.get(name) ?? []
+    // Kalau cuma ada 1 varian, langsung pilih otomatis. Kalau lebih dari 1, biarkan kosong dulu sampai dipilih manual.
+    setSelectedProductId(variants.length === 1 ? variants[0].id : '')
+  }
 
   const newStock = selectedProduct ? selectedProduct.stock + Number(quantity || 0) : 0
 
@@ -48,7 +72,8 @@ export default function StockInForm({ products, onSuccess }: StockInFormProps) {
     })
 
     setSaving(false)
-    setSelectedProduct(null)
+    setSelectedName('')
+    setSelectedProductId('')
     setSearch('')
     setQuantity('')
     onSuccess()
@@ -56,8 +81,8 @@ export default function StockInForm({ products, onSuccess }: StockInFormProps) {
 
   return (
     <form onSubmit={handleSubmit}>
-      <div style={{ display: 'flex', gap: 12 }}>
-        <div style={{ position: 'relative', flex: 2 }}>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: 2, minWidth: 200 }}>
           <button
             type="button"
             onClick={() => setDropdownOpen((v) => !v)}
@@ -71,8 +96,8 @@ export default function StockInForm({ products, onSuccess }: StockInFormProps) {
               cursor: 'pointer',
             }}
           >
-            <span style={{ color: selectedProduct ? 'var(--color-text)' : 'var(--color-text-muted)' }}>
-              {selectedProduct ? selectedProduct.name : 'Pilih Produk'}
+            <span style={{ color: selectedName ? 'var(--color-text)' : 'var(--color-text-muted)' }}>
+              {selectedName || 'Pilih Produk'}
             </span>
             <ChevronDown size={14} />
           </button>
@@ -108,31 +133,45 @@ export default function StockInForm({ products, onSuccess }: StockInFormProps) {
                   outline: 'none',
                 }}
               />
-              {filteredOptions.length === 0 && (
+              {filteredNames.length === 0 && (
                 <div style={{ padding: 12, fontSize: 13, color: 'var(--color-text-muted)' }}>Tidak ditemukan</div>
               )}
-              {filteredOptions.map((p) => (
+              {filteredNames.map((name) => (
                 <div
-                  key={p.id}
-                  onClick={() => {
-                    setSelectedProduct(p)
-                    setDropdownOpen(false)
-                    setSearch('')
-                  }}
-                  style={{
-                    padding: '10px 12px',
-                    cursor: 'pointer',
-                    fontSize: 14,
-                  }}
+                  key={name}
+                  onClick={() => handleSelectName(name)}
+                  style={{ padding: '10px 12px', cursor: 'pointer', fontSize: 14 }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-bg)')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
-                  {p.name}
+                  {name}
+                  {(groupedByName.get(name)?.length ?? 0) > 1 && (
+                    <span style={{ color: 'var(--color-text-muted)', fontSize: 12 }}>
+                      {' '}
+                      · {groupedByName.get(name)?.length} varian
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
           )}
         </div>
+
+        {hasMultipleVariants && (
+          <select
+            value={selectedProductId}
+            onChange={(e) => setSelectedProductId(e.target.value)}
+            required
+            style={{ ...inputStyle, flex: 1, minWidth: 140 }}
+          >
+            <option value="">Pilih Varian</option>
+            {variantsForSelectedName.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.variant || 'Tanpa varian'}
+              </option>
+            ))}
+          </select>
+        )}
 
         <input
           type="number"
@@ -140,7 +179,7 @@ export default function StockInForm({ products, onSuccess }: StockInFormProps) {
           value={quantity}
           onChange={(e) => setQuantity(e.target.value)}
           required
-          style={{ ...inputStyle, flex: 1 }}
+          style={{ ...inputStyle, flex: 1, minWidth: 100 }}
         />
         <button
           type="submit"

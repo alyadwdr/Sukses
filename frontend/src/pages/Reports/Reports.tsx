@@ -8,6 +8,8 @@ import { useReportsData, type ReportTimeFilter } from '@/features/reports/useRep
 import { useBusiness } from '@/context/BusinessContext'
 import Card from '@/components/Card/Card'
 import PageTopBar from '@/components/PageTopBar/PageTopBar'
+import Loading from '@/components/Loading/Loading'
+import TimeFilterTabs from '@/components/TimeFilterTabs/TimeFilterTabs'
 
 function formatRupiah(value: number) {
   return `Rp${value.toLocaleString('id-ID')}`
@@ -32,25 +34,8 @@ function IconBadge({ children, bg, color }: { children: React.ReactNode; bg: str
   )
 }
 
-const timeOptions: { label: string; value: ReportTimeFilter }[] = [
-  { label: 'Semua', value: 'all' },
-  { label: 'Hari Ini', value: 'today' },
-  { label: 'Bulan Ini', value: 'month' },
-  { label: 'Tahun Ini', value: 'year' },
-  { label: 'Kustom', value: 'custom' },
-]
-
-const dateInputStyle = {
-  padding: '8px 12px',
-  borderRadius: 8,
-  border: '1px solid var(--color-border)',
-  background: 'var(--color-bg)',
-  color: 'var(--color-text)',
-  fontSize: 13,
-}
-
 export default function Reports() {
-  const [timeFilter, setTimeFilter] = useState<ReportTimeFilter>('month')
+  const [timeFilter, setTimeFilter] = useState<ReportTimeFilter>('all')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [appliedFrom, setAppliedFrom] = useState('')
@@ -59,7 +44,7 @@ export default function Reports() {
   const { data, loading } = useReportsData(timeFilter, appliedFrom, appliedTo)
   const { business } = useBusiness()
 
-  if (loading || !data) return <p>Memuat...</p>
+  if (loading || !data) return <Loading />
 
   function handleApplyCustom() {
     setAppliedFrom(customFrom)
@@ -207,6 +192,7 @@ export default function Reports() {
     <div>
       <PageTopBar
         title="Laporan Bisnis"
+        showFilter={false}
         action={
           <div style={{ display: 'flex', gap: 10 }}>
             <button
@@ -231,36 +217,16 @@ export default function Reports() {
         }
       />
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
-        <div style={{ display: 'inline-flex', padding: 4, borderRadius: 20, background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
-          {timeOptions.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setTimeFilter(opt.value)}
-              style={{
-                padding: '6px 14px', borderRadius: 16, border: 'none', fontSize: 13, cursor: 'pointer',
-                background: timeFilter === opt.value ? 'var(--color-primary)' : 'transparent',
-                color: timeFilter === opt.value ? '#fff' : 'var(--color-text)',
-              }}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-
-        {timeFilter === 'custom' && (
-          <>
-            <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} style={dateInputStyle} />
-            <span style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>sampai</span>
-            <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} style={dateInputStyle} />
-            <button
-              onClick={handleApplyCustom}
-              style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--color-primary)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
-            >
-              Terapkan
-            </button>
-          </>
-        )}
+      <div style={{ marginBottom: 20 }}>
+        <TimeFilterTabs
+          value={timeFilter}
+          onChange={setTimeFilter}
+          customFrom={customFrom}
+          customTo={customTo}
+          onCustomFromChange={setCustomFrom}
+          onCustomToChange={setCustomTo}
+          onApplyCustom={handleApplyCustom}
+        />
       </div>
 
       <div style={{ display: 'flex', gap: 20, marginBottom: 20, flexWrap: 'wrap' }}>
@@ -331,7 +297,10 @@ export default function Reports() {
             <BarChart data={data.chartData}>
               <XAxis dataKey="label" stroke="var(--color-text-muted)" fontSize={11} />
               <YAxis stroke="var(--color-text-muted)" fontSize={12} tickFormatter={(v: number) => v.toLocaleString('id-ID')} width={70} />
-              <Tooltip formatter={(value) => formatRupiah(Number(value))} />
+              <Tooltip
+                formatter={(value) => formatRupiah(Number(value))}
+                contentStyle={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: 10, color: 'var(--color-text)' }}
+              />
               <Bar dataKey="sales" fill="#95B1EE" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>

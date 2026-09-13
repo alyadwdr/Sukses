@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Search, X, List, Grid2x2, LayoutGrid, ChevronDown, Banknote, QrCode, Calendar } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { useNotifications } from '@/context/NotificationsContext'
 import type { Product } from '@/types/product'
 
 // Nyalain lagi ke `true` kalau nanti fitur uang diterima + kembalian mau dipakai lagi.
@@ -46,6 +47,7 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
   const [saving, setSaving] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [viewMenuOpen, setViewMenuOpen] = useState(false)
+  const { refetch: refetchNotifications } = useNotifications()
 
   useEffect(() => {
     supabase
@@ -143,6 +145,7 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
     }
 
     setSaving(false)
+    refetchNotifications()
     onSuccess()
   }
 
@@ -354,13 +357,13 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
         <div
           style={{
             flex: 1,
-            background: 'var(--color-bg)',
+            background: 'var(--color-accent)',
             borderRadius: 16,
             padding: 20,
             minWidth: 220,
           }}
         >
-          <h3 style={{ marginBottom: 16, fontSize: 15 }}>Transaksi Saat Ini</h3>
+          <h3 style={{ marginBottom: 16, fontSize: 15, color: 'var(--color-text)' }}>Transaksi Saat Ini</h3>
           {cart.length === 0 && <p style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>Belum ada item</p>}
           {cart.map((item) => (
             <div key={item.product.id} style={{ marginBottom: 14 }}>

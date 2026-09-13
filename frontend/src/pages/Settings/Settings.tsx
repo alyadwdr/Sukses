@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase'
 import { useNavigate } from 'react-router-dom'
 import { Store, Moon, Sun, LogOut } from 'lucide-react'
 import Card from '@/components/Card/Card'
-import PageTopBar from '@/components/PageTopBar/PageTopBar'
 
 const inputStyle = {
   width: '100%',
@@ -17,6 +16,13 @@ const inputStyle = {
   color: 'var(--color-text)',
   fontFamily: 'var(--font-body)',
   fontSize: 14,
+}
+
+const labelStyle = {
+  fontSize: 12,
+  color: 'var(--color-text-muted)',
+  marginBottom: 6,
+  display: 'block',
 }
 
 export default function Settings() {
@@ -57,178 +63,171 @@ export default function Settings() {
   const initials = email.slice(0, 2).toUpperCase()
 
   return (
-    <div>
-      <PageTopBar title="Pengaturan" showFilter={false} />
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 48px)' }}>
+      <h1 style={{ color: 'var(--color-text)', marginBottom: 20 }}>Pengaturan</h1>
 
-      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-        <Card style={{ boxShadow: 'var(--shadow-card)', padding: 0, overflow: 'hidden', width: 320 }}>
-          <div style={{ background: 'var(--color-accent)', height: 90 }} />
-          <div style={{ padding: '0 24px 24px', marginTop: -45 }}>
-            <div
-              style={{
-                width: 90,
-                height: 90,
-                borderRadius: '50%',
-                background: 'var(--color-accent)',
-                border: '4px solid var(--color-card)',
-                color: 'var(--color-text)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 700,
-                fontSize: 28,
-                margin: '0 auto 12px',
-              }}
-            >
-              {initials}
+      <Card
+        style={{
+          boxShadow: 'var(--shadow-card)',
+          background: 'var(--color-text)',
+          marginBottom: 20,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 20,
+          flexWrap: 'wrap',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              background: 'var(--color-accent)',
+              color: 'var(--color-text)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 700,
+              fontSize: 20,
+              flexShrink: 0,
+            }}
+          >
+            {initials}
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>{business?.name ?? 'Sukses'}</span>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: 10,
+                  background: 'rgba(255,255,255,0.15)',
+                  color: '#fff',
+                  letterSpacing: 0.5,
+                }}
+              >
+                PEMILIK
+              </span>
             </div>
+            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>{email}</div>
+          </div>
+        </div>
 
-            <div style={{ textAlign: 'center', fontWeight: 700, color: 'var(--color-text)', marginBottom: 4 }}>
-              {email}
-            </div>
-
-            <hr style={{ borderColor: 'var(--color-border)', margin: '20px 0' }} />
-
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 20,
-              }}
-            >
-              <div>
-                <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
-                  Tema Tampilan
-                </div>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>{theme === 'dark' ? 'Gelap' : 'Terang'}</div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  onClick={() => theme !== 'light' && toggleTheme()}
-                  aria-label="Tema terang"
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: '50%',
-                    border: '1px solid var(--color-border)',
-                    background: theme === 'light' ? 'var(--color-primary)' : 'var(--color-bg)',
-                    color: theme === 'light' ? '#fff' : 'var(--color-text-muted)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <Sun size={16} />
-                </button>
-                <button
-                  onClick={() => theme !== 'dark' && toggleTheme()}
-                  aria-label="Tema gelap"
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: '50%',
-                    border: '1px solid var(--color-border)',
-                    background: theme === 'dark' ? 'var(--color-primary)' : 'var(--color-bg)',
-                    color: theme === 'dark' ? '#fff' : 'var(--color-text-muted)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <Moon size={16} />
-                </button>
-              </div>
-            </div>
-
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div
+            style={{
+              display: 'inline-flex',
+              padding: 3,
+              borderRadius: 20,
+              background: 'rgba(255,255,255,0.1)',
+            }}
+          >
             <button
-              onClick={handleLogout}
+              onClick={() => theme !== 'light' && toggleTheme()}
+              aria-label="Tema terang"
               style={{
-                width: '100%',
+                width: 32,
+                height: 32,
+                borderRadius: '50%',
+                border: 'none',
+                background: theme === 'light' ? '#fff' : 'transparent',
+                color: theme === 'light' ? 'var(--color-text)' : 'rgba(255,255,255,0.6)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 8,
-                padding: 14,
-                borderRadius: 14,
-                border: 'none',
-                background: '#e74c3c',
-                color: '#fff',
-                fontWeight: 700,
                 cursor: 'pointer',
               }}
             >
-              <LogOut size={16} /> Keluar
+              <Sun size={15} />
             </button>
-          </div>
-        </Card>
-
-        <Card style={{ boxShadow: 'var(--shadow-card)', flex: 1, minWidth: 340, maxWidth: 480 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-            <div
+            <button
+              onClick={() => theme !== 'dark' && toggleTheme()}
+              aria-label="Tema gelap"
               style={{
-                width: 40,
-                height: 40,
-                borderRadius: 10,
-                background: 'var(--color-bg)',
+                width: 32,
+                height: 32,
+                borderRadius: '50%',
+                border: 'none',
+                background: theme === 'dark' ? '#fff' : 'transparent',
+                color: theme === 'dark' ? 'var(--color-text)' : 'rgba(255,255,255,0.6)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                flexShrink: 0,
+                cursor: 'pointer',
               }}
             >
-              <Store size={19} color="var(--color-text-muted)" />
+              <Moon size={15} />
+            </button>
+          </div>
+
+          <button
+            onClick={handleLogout}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '10px 22px',
+              borderRadius: 20,
+              border: 'none',
+              background: '#e74c3c',
+              color: '#fff',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            <LogOut size={16} /> Keluar
+          </button>
+        </div>
+      </Card>
+
+      <Card style={{ boxShadow: 'var(--shadow-card)', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
+          <Store size={20} color="var(--color-primary)" />
+          <h3 style={{ fontSize: 17 }}>Profil Bisnis & Laporan</h3>
+        </div>
+
+        <form onSubmit={handleSaveBusiness} style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+          <div style={{ marginBottom: 20 }}>
+            <label style={labelStyle}>Nama Bisnis</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} required style={inputStyle} />
+          </div>
+
+          <div style={{ display: 'flex', gap: 20, marginBottom: 20, flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <label style={labelStyle}>Nomor Telepon</label>
+              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Opsional" style={inputStyle} />
             </div>
-            <div>
-              <h3 style={{ fontSize: 16, marginBottom: 2 }}>Informasi Bisnis</h3>
-              <p style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
-                Data untuk kop laporan PDF dan profil toko.
-              </p>
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <label style={labelStyle}>Alamat Lengkap</label>
+              <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Opsional" style={inputStyle} />
             </div>
           </div>
 
-          <form onSubmit={handleSaveBusiness} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div>
-              <label style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 6, display: 'block' }}>
-                Nama Bisnis
-              </label>
-              <input value={name} onChange={(e) => setName(e.target.value)} required style={inputStyle} />
-            </div>
-            <div>
-              <label style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 6, display: 'block' }}>
-                Alamat Toko
-              </label>
-              <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Opsional" style={inputStyle} />
-            </div>
-            <div>
-              <label style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 6, display: 'block' }}>
-                Nomor Telepon
-              </label>
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Opsional" style={inputStyle} />
-            </div>
+          <div style={{ flex: 1 }} />
 
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button
               type="submit"
               disabled={saving}
               style={{
-                padding: 14,
+                padding: '12px 32px',
                 borderRadius: 12,
                 border: 'none',
                 background: saved ? '#27ae60' : 'var(--color-primary)',
                 color: '#fff',
                 fontWeight: 700,
                 cursor: 'pointer',
-                marginTop: 4,
               }}
             >
               {saving ? 'Menyimpan...' : saved ? 'Tersimpan' : 'Simpan Perubahan'}
             </button>
-          </form>
-        </Card>
-      </div>
+          </div>
+        </form>
+      </Card>
     </div>
   )
 }

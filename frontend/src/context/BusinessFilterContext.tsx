@@ -1,42 +1,26 @@
-import { useBusinessFilter } from '@/context/BusinessFilterContext'
+import { createContext, useContext, useState, type ReactNode } from 'react'
 
-const options: { label: string; value: 'all' | 'plastik' | 'sembako'; color: string }[] = [
-  { label: 'Sembako & Plastik', value: 'all', color: 'var(--color-primary)' },
-  { label: 'Plastik', value: 'plastik', color: 'var(--color-plastik)' },
-  { label: 'Sembako', value: 'sembako', color: 'var(--color-sembako)' },
-]
+export type BusinessFilter = 'all' | 'plastik' | 'sembako'
 
-export default function BusinessFilterTabs() {
-  const { filter, setFilter } = useBusinessFilter()
+interface BusinessFilterContextType {
+  filter: BusinessFilter
+  setFilter: (filter: BusinessFilter) => void
+}
+
+const BusinessFilterContext = createContext<BusinessFilterContextType | undefined>(undefined)
+
+export function BusinessFilterProvider({ children }: { children: ReactNode }) {
+  const [filter, setFilter] = useState<BusinessFilter>('all')
 
   return (
-    <div
-      style={{
-        display: 'inline-flex',
-        padding: 4,
-        borderRadius: 999,
-        background: 'var(--color-card)',
-        border: '1px solid var(--color-border)',
-      }}
-    >
-      {options.map((opt) => (
-        <button
-          key={opt.value}
-          onClick={() => setFilter(opt.value)}
-          style={{
-            padding: '8px 16px',
-            borderRadius: 999,
-            border: 'none',
-            cursor: 'pointer',
-            background: filter === opt.value ? opt.color : 'transparent',
-            color: filter === opt.value ? '#fff' : 'var(--color-text)',
-            fontWeight: filter === opt.value ? 600 : 400,
-            fontSize: 13,
-          }}
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
+    <BusinessFilterContext.Provider value={{ filter, setFilter }}>
+      {children}
+    </BusinessFilterContext.Provider>
   )
+}
+
+export function useBusinessFilter() {
+  const context = useContext(BusinessFilterContext)
+  if (!context) throw new Error('useBusinessFilter must be used within BusinessFilterProvider')
+  return context
 }

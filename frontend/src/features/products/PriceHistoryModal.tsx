@@ -37,7 +37,7 @@ export default function PriceHistoryModal({ productId, productName, onClose }: {
       <p style={{ color: 'var(--color-text-muted)', fontSize: 13, marginBottom: 20 }}>{productName}</p>
 
       {loading ? (
-        <p>Memuat...</p>
+        <p style={{ color: 'var(--color-text-muted)' }}>Memuat...</p>
       ) : rows.length === 0 ? (
         <p style={{ color: 'var(--color-text-muted)' }}>Belum ada perubahan harga tercatat.</p>
       ) : (

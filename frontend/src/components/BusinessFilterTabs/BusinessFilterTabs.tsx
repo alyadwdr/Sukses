@@ -1,10 +1,9 @@
 import { useBusinessFilter } from '@/context/BusinessFilterContext'
-import type { BusinessFilter } from '@/context/BusinessFilterContext'
 
-const options: { label: string; value: BusinessFilter }[] = [
-  { label: 'Sembako & Plastik', value: 'all' },
-  { label: 'Plastik', value: 'plastik' },
-  { label: 'Sembako', value: 'sembako' },
+const options: { label: string; value: 'all' | 'plastik' | 'sembako'; color: string }[] = [
+  { label: 'Sembako & Plastik', value: 'all', color: 'var(--color-primary)' },
+  { label: 'Plastik', value: 'plastik', color: 'var(--color-plastik)' },
+  { label: 'Sembako', value: 'sembako', color: 'var(--color-sembako)' },
 ]
 
 export default function BusinessFilterTabs() {
@@ -15,9 +14,9 @@ export default function BusinessFilterTabs() {
       style={{
         display: 'inline-flex',
         padding: 4,
-        borderRadius: 12,
+        borderRadius: 999,
         background: 'var(--color-card)',
-        border: '1px solid rgba(0,0,0,0.08)',
+        border: '1px solid var(--color-border)',
       }}
     >
       {options.map((opt) => (
@@ -26,12 +25,13 @@ export default function BusinessFilterTabs() {
           onClick={() => setFilter(opt.value)}
           style={{
             padding: '8px 16px',
-            borderRadius: 8,
+            borderRadius: 999,
             border: 'none',
             cursor: 'pointer',
-            background: filter === opt.value ? 'var(--color-primary)' : 'transparent',
+            background: filter === opt.value ? opt.color : 'transparent',
             color: filter === opt.value ? '#fff' : 'var(--color-text)',
             fontWeight: filter === opt.value ? 600 : 400,
+            fontSize: 13,
           }}
         >
           {opt.label}
