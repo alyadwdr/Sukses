@@ -1,22 +1,23 @@
 import { useMemo } from 'react'
 import type { Expense } from '@/types/expense'
+import { jakartaDateString, jakartaDateOnly } from '@/lib/time'
 
-function startOfWeek(date: Date) {
-  const d = new Date(date)
-  const day = d.getDay()
+function jakartaWeekStartStr(): string {
+  const { y, m, d } = jakartaDateOnly()
+  const base = new Date(Date.UTC(y, m - 1, d))
+  const day = base.getUTCDay()
   const diff = day === 0 ? 6 : day - 1
-  d.setDate(d.getDate() - diff)
-  d.setHours(0, 0, 0, 0)
-  return d
+  base.setUTCDate(base.getUTCDate() - diff)
+  return jakartaDateString(base)
 }
 
 export function useExpenseSummary(expenses: Expense[]) {
   return useMemo(() => {
-    const now = new Date()
-    const todayStr = now.toISOString().split('T')[0]
-    const weekStartStr = startOfWeek(now).toISOString().split('T')[0]
-    const monthStartStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
-    const yearStartStr = `${now.getFullYear()}-01-01`
+    const todayStr = jakartaDateString()
+    const weekStartStr = jakartaWeekStartStr()
+    const { y } = jakartaDateOnly()
+    const monthStartStr = `${jakartaDateString().slice(0, 7)}-01`
+    const yearStartStr = `${y}-01-01`
 
     const today = expenses.filter((e) => e.expense_date === todayStr).reduce((s, e) => s + e.amount, 0)
     const week = expenses.filter((e) => e.expense_date >= weekStartStr).reduce((s, e) => s + e.amount, 0)

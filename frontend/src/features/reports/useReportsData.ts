@@ -2,6 +2,17 @@ import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useBusinessFilter } from '@/context/BusinessFilterContext'
 import { filterItemsByCategory } from '@/lib/categoryFilter'
+import {
+  jakartaDateString,
+  jakartaDateOnly,
+  startOfJakartaDay,
+  endOfJakartaDay,
+  startOfJakartaMonth,
+  endOfJakartaMonth,
+  startOfJakartaYear,
+  endOfJakartaYear,
+  addJakartaDays,
+} from '@/lib/time'
 
 export type ReportTimeFilter = 'all' | 'today' | 'month' | 'year' | 'custom'
 
@@ -38,30 +49,28 @@ interface ReportsData {
 }
 
 function getRange(timeFilter: ReportTimeFilter, customFrom?: string, customTo?: string) {
-  const now = new Date()
-
   if (timeFilter === 'today') {
-    const start = new Date(); start.setHours(0, 0, 0, 0)
-    const end = new Date(); end.setHours(23, 59, 59, 999)
-    return { start, end, label: `Hari Ini (${start.toLocaleDateString('id-ID')})` }
+    const start = startOfJakartaDay()
+    const end = endOfJakartaDay()
+    return { start, end, label: `Hari Ini (${jakartaDateString()})` }
   }
   if (timeFilter === 'month') {
-    const start = new Date(now.getFullYear(), now.getMonth(), 1)
-    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
-    return { start, end, label: start.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }) }
+    const start = startOfJakartaMonth()
+    const end = endOfJakartaMonth()
+    return { start, end, label: start.toLocaleDateString('id-ID', { month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' }) }
   }
   if (timeFilter === 'year') {
-    const start = new Date(now.getFullYear(), 0, 1)
-    const end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999)
-    return { start, end, label: String(now.getFullYear()) }
+    const start = startOfJakartaYear()
+    const end = endOfJakartaYear()
+    return { start, end, label: String(jakartaDateOnly(start).y) }
   }
   if (timeFilter === 'custom' && customFrom && customTo) {
-    const start = new Date(customFrom); start.setHours(0, 0, 0, 0)
-    const end = new Date(customTo); end.setHours(23, 59, 59, 999)
+    const start = new Date(`${customFrom}T00:00:00+07:00`)
+    const end = new Date(`${customTo}T23:59:59+07:00`)
     return {
       start,
       end,
-      label: `${start.toLocaleDateString('id-ID')} - ${end.toLocaleDateString('id-ID')}`,
+      label: `${start.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })} - ${end.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })}`,
     }
   }
   return { start: null, end: null, label: 'Semua Waktu' }
@@ -85,7 +94,7 @@ export function useReportsData(timeFilter: ReportTimeFilter, customFrom?: string
 
     if (start && end) {
       trxQuery = trxQuery.gte('created_at', start.toISOString()).lte('created_at', end.toISOString())
-      expQuery = expQuery.gte('expense_date', start.toISOString().split('T')[0]).lte('expense_date', end.toISOString().split('T')[0])
+      expQuery = expQuery.gte('expense_date', jakartaDateString(start)).lte('expense_date', jakartaDateString(end))
     }
 
     const { data: transactions } = await trxQuery
@@ -115,28 +124,26 @@ export function useReportsData(timeFilter: ReportTimeFilter, customFrom?: string
     const totalExpenses = (expenses ?? []).reduce((sum, e) => sum + e.amount, 0)
     const grossProfit = totalSales - costOfGoods
 
-    // Bucketing grafik: harian kalau rentangnya pendek (hari ini/bulan/kustom singkat), bulanan kalau panjang (tahun/semua)
     let chartData: { label: string; sales: number }[] = []
     const spanDays = start && end ? (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24) : 366
 
     if (start && end && spanDays <= 31) {
       const days = Math.max(1, Math.round(spanDays) + 1)
       chartData = Array.from({ length: days }).map((_, i) => {
-        const day = new Date(start)
-        day.setDate(day.getDate() + i)
-        const dayStr = day.toISOString().split('T')[0]
+        const day = addJakartaDays(start, i)
+        const dayStr = jakartaDateString(day)
         const daySales = relevantTrx
-          .filter((trx) => trx.created_at.startsWith(dayStr))
+          .filter((trx) => jakartaDateString(new Date(trx.created_at)) === dayStr)
           .reduce((sum, trx) => sum + trx.transaction_items.reduce((s: number, i2: any) => s + i2.subtotal, 0), 0)
-        return { label: String(day.getDate()), sales: daySales }
+        return { label: String(Number(dayStr.split('-')[2])), sales: daySales }
       })
     } else {
-      const yearRef = start ? start.getFullYear() : new Date().getFullYear()
+      const yearRef = start ? jakartaDateOnly(start).y : jakartaDateOnly().y
       chartData = Array.from({ length: 12 }).map((_, i) => {
         const monthSales = relevantTrx
           .filter((trx) => {
-            const d = new Date(trx.created_at)
-            return d.getMonth() === i && (start ? d.getFullYear() === yearRef : true)
+            const { y, m } = jakartaDateOnly(new Date(trx.created_at))
+            return m - 1 === i && (start ? y === yearRef : true)
           })
           .reduce((sum, trx) => sum + trx.transaction_items.reduce((s: number, i2: any) => s + i2.subtotal, 0), 0)
         return { label: new Date(2000, i, 1).toLocaleDateString('id-ID', { month: 'short' }), sales: monthSales }
@@ -158,7 +165,7 @@ export function useReportsData(timeFilter: ReportTimeFilter, customFrom?: string
     relevantTrx.forEach((trx) => {
       trx.transaction_items.forEach((item: any) => {
         transactionItemRows.push({
-          date: new Date(trx.created_at).toLocaleDateString('id-ID'),
+          date: new Date(trx.created_at).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' }),
           trx_number: trx.trx_number,
           product: item.products.name,
           category: item.products.category,
@@ -170,7 +177,7 @@ export function useReportsData(timeFilter: ReportTimeFilter, customFrom?: string
     })
 
     const expenseRows: ExpenseRow[] = (expenses ?? []).map((e) => ({
-      date: new Date(e.expense_date).toLocaleDateString('id-ID'),
+      date: new Date(e.expense_date).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' }),
       description: e.description,
       category: e.category,
       amount: e.amount,

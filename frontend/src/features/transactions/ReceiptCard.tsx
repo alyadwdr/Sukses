@@ -8,7 +8,7 @@ interface Props {
   highlighted?: boolean
 }
 
-const MAX_VISIBLE_ITEMS = 4
+const MAX_VISIBLE_ITEMS = 3
 
 function ItemRow({ item }: { item: TransactionRow['transaction_items'][number] }) {
   return (
@@ -31,6 +31,25 @@ function ItemRow({ item }: { item: TransactionRow['transaction_items'][number] }
   )
 }
 
+function PlaceholderRow() {
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr auto auto',
+        gap: 10,
+        fontSize: 14,
+        marginBottom: 6,
+        visibility: 'hidden',
+      }}
+    >
+      <span>&nbsp;</span>
+      <span>&nbsp;</span>
+      <span>&nbsp;</span>
+    </div>
+  )
+}
+
 export default function ReceiptCard({ transaction, highlighted }: Props) {
   const [showAll, setShowAll] = useState(false)
   const [showOutline, setShowOutline] = useState(!!highlighted)
@@ -48,6 +67,7 @@ export default function ReceiptCard({ transaction, highlighted }: Props) {
 
   const visibleItems = transaction.transaction_items.slice(0, MAX_VISIBLE_ITEMS)
   const hasMore = transaction.transaction_items.length > MAX_VISIBLE_ITEMS
+  const placeholderCount = Math.max(0, MAX_VISIBLE_ITEMS - visibleItems.length)
 
   return (
     <div
@@ -66,15 +86,19 @@ export default function ReceiptCard({ transaction, highlighted }: Props) {
             day: '2-digit',
             month: 'long',
             year: 'numeric',
+            timeZone: 'Asia/Jakarta',
           })}
         </div>
 
         {visibleItems.map((item) => (
           <ItemRow key={item.id} item={item} />
         ))}
+        {Array.from({ length: placeholderCount }).map((_, i) => (
+          <PlaceholderRow key={`ph-${i}`} />
+        ))}
 
-        {hasMore && (
-          <div style={{ textAlign: 'center', marginTop: 4, marginBottom: 4 }}>
+        <div style={{ textAlign: 'center', marginTop: 4, marginBottom: 4, minHeight: 20 }}>
+          {hasMore && (
             <button
               onClick={() => setShowAll(true)}
               style={{
@@ -88,10 +112,10 @@ export default function ReceiptCard({ transaction, highlighted }: Props) {
             >
               Lihat Semua ({transaction.transaction_items.length} item)
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
-        <div style={{ borderTop: '1px solid var(--color-border)', marginTop: 12, paddingTop: 12 }}>
+        <div style={{ borderTop: '1px solid var(--color-border)', marginTop: 4, paddingTop: 12 }}>
           <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{totalItems} Item</div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, marginTop: 4 }}>
             <span>Total</span>
@@ -126,6 +150,7 @@ export default function ReceiptCard({ transaction, highlighted }: Props) {
               day: '2-digit',
               month: 'long',
               year: 'numeric',
+              timeZone: 'Asia/Jakarta',
             })}
           </p>
 

@@ -2,6 +2,17 @@ import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useBusinessFilter } from '@/context/BusinessFilterContext'
 import { filterItemsByCategory } from '@/lib/categoryFilter'
+import {
+  jakartaDateString,
+  jakartaDateOnly,
+  startOfJakartaDay,
+  endOfJakartaDay,
+  startOfJakartaMonth,
+  endOfJakartaMonth,
+  startOfJakartaYear,
+  endOfJakartaYear,
+  addJakartaDays,
+} from '@/lib/time'
 
 export type ChartPeriod = '7d' | '1m' | '1y'
 
@@ -37,25 +48,20 @@ export function useDashboardData(period: ChartPeriod) {
   const fetchData = useCallback(async () => {
     setLoading(true)
 
-    const now = new Date()
-    const todayStart = new Date()
-    todayStart.setHours(0, 0, 0, 0)
+    const todayStart = startOfJakartaDay()
 
     let rangeStart: Date
     let rangeEnd: Date
 
     if (period === '7d') {
-      rangeStart = new Date()
-      rangeStart.setDate(rangeStart.getDate() - 6)
-      rangeStart.setHours(0, 0, 0, 0)
-      rangeEnd = new Date()
-      rangeEnd.setHours(23, 59, 59, 999)
+      rangeStart = addJakartaDays(new Date(), -6)
+      rangeEnd = endOfJakartaDay()
     } else if (period === '1m') {
-      rangeStart = new Date(now.getFullYear(), now.getMonth(), 1)
-      rangeEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+      rangeStart = startOfJakartaMonth()
+      rangeEnd = endOfJakartaMonth()
     } else {
-      rangeStart = new Date(now.getFullYear(), 0, 1)
-      rangeEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999)
+      rangeStart = startOfJakartaYear()
+      rangeEnd = endOfJakartaYear()
     }
 
     const [{ data: periodTrx }, { data: latestTrx }, { data: periodExpenses }, { data: todayExpensesData }, { data: lowStock }] =
@@ -65,13 +71,12 @@ export function useDashboardData(period: ChartPeriod) {
         supabase
           .from('expenses')
           .select('amount, expense_date')
-          .gte('expense_date', rangeStart.toISOString().split('T')[0])
-          .lte('expense_date', rangeEnd.toISOString().split('T')[0]),
-        supabase.from('expenses').select('amount, expense_date').gte('expense_date', todayStart.toISOString().split('T')[0]),
+          .gte('expense_date', jakartaDateString(rangeStart))
+          .lte('expense_date', jakartaDateString(rangeEnd)),
+        supabase.from('expenses').select('amount, expense_date').gte('expense_date', jakartaDateString(todayStart)),
         supabase.from('products').select('id, name, stock, unit, min_stock').order('stock', { ascending: true }),
       ])
 
-    // Hanya simpan transaksi yang punya minimal 1 item sesuai kategori filter
     const relevantPeriodTrx = (periodTrx ?? []).filter((trx) => relevantItems(trx, filter).length > 0)
     const relevantLatestTrx = (latestTrx ?? []).filter((trx) => relevantItems(trx, filter).length > 0)
 
@@ -89,25 +94,27 @@ export function useDashboardData(period: ChartPeriod) {
 
     if (period === '7d') {
       chartData = Array.from({ length: 7 }).map((_, i) => {
-        const day = new Date(rangeStart)
-        day.setDate(day.getDate() + i)
-        const dayStr = day.toISOString().split('T')[0]
+        const day = addJakartaDays(rangeStart, i)
+        const dayStr = jakartaDateString(day)
         const daySales = relevantPeriodTrx
-          .filter((trx) => trx.created_at.startsWith(dayStr))
+          .filter((trx) => jakartaDateString(new Date(trx.created_at)) === dayStr)
           .reduce((sum, trx) => sum + trxSalesFor(trx, filter), 0)
         const dayExpenses = (periodExpenses ?? [])
           .filter((e) => e.expense_date === dayStr)
           .reduce((sum, e) => sum + e.amount, 0)
-        return { label: day.toLocaleDateString('id-ID', { weekday: 'short' }), sales: daySales, expenses: dayExpenses }
+        return {
+          label: day.toLocaleDateString('id-ID', { weekday: 'short', timeZone: 'Asia/Jakarta' }),
+          sales: daySales,
+          expenses: dayExpenses,
+        }
       })
     } else if (period === '1m') {
-      const daysInMonth = rangeEnd.getDate()
-      chartData = Array.from({ length: daysInMonth }).map((_, i) => {
-        const day = new Date(rangeStart)
-        day.setDate(i + 1)
-        const dayStr = day.toISOString().split('T')[0]
+      const daysInRange = Math.round((rangeEnd.getTime() - rangeStart.getTime() + 1) / (24 * 60 * 60 * 1000))
+      chartData = Array.from({ length: daysInRange }).map((_, i) => {
+        const day = addJakartaDays(rangeStart, i)
+        const dayStr = jakartaDateString(day)
         const daySales = relevantPeriodTrx
-          .filter((trx) => trx.created_at.startsWith(dayStr))
+          .filter((trx) => jakartaDateString(new Date(trx.created_at)) === dayStr)
           .reduce((sum, trx) => sum + trxSalesFor(trx, filter), 0)
         const dayExpenses = (periodExpenses ?? [])
           .filter((e) => e.expense_date === dayStr)
@@ -115,20 +122,21 @@ export function useDashboardData(period: ChartPeriod) {
         return { label: String(i + 1), sales: daySales, expenses: dayExpenses }
       })
     } else {
+      const yearRef = jakartaDateOnly(rangeStart).y
       chartData = Array.from({ length: 12 }).map((_, i) => {
         const monthSales = relevantPeriodTrx
           .filter((trx) => {
-            const d = new Date(trx.created_at)
-            return d.getMonth() === i && d.getFullYear() === rangeStart.getFullYear()
+            const { y, m } = jakartaDateOnly(new Date(trx.created_at))
+            return m - 1 === i && y === yearRef
           })
           .reduce((sum, trx) => sum + trxSalesFor(trx, filter), 0)
         const monthExpenses = (periodExpenses ?? [])
           .filter((e) => {
-            const d = new Date(e.expense_date)
-            return d.getMonth() === i && d.getFullYear() === rangeStart.getFullYear()
+            const { y, m } = jakartaDateOnly(new Date(e.expense_date))
+            return m - 1 === i && y === yearRef
           })
           .reduce((sum, e) => sum + e.amount, 0)
-        const monthLabel = new Date(rangeStart.getFullYear(), i, 1).toLocaleDateString('id-ID', { month: 'short' })
+        const monthLabel = new Date(2000, i, 1).toLocaleDateString('id-ID', { month: 'short' })
         return { label: monthLabel, sales: monthSales, expenses: monthExpenses }
       })
     }

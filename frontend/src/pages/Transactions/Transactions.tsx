@@ -184,8 +184,8 @@ export default function Transactions() {
             </button>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, gap: 12, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, gap: 12, flexWrap: 'nowrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflowX: 'auto', flex: 1, minWidth: 0 }}>
               <div
                 style={{
                   display: 'inline-flex',
@@ -193,6 +193,7 @@ export default function Transactions() {
                   borderRadius: 20,
                   background: 'var(--color-bg)',
                   border: '1px solid var(--color-border)',
+                  flexShrink: 0,
                 }}
               >
                 {timeOptions.map((opt) => (
@@ -205,6 +206,7 @@ export default function Transactions() {
                       border: 'none',
                       fontSize: 13,
                       cursor: 'pointer',
+                      whiteSpace: 'nowrap',
                       background: timeFilter === opt.value ? 'var(--color-primary)' : 'transparent',
                       color: timeFilter === opt.value ? '#fff' : 'var(--color-text)',
                     }}
@@ -217,7 +219,7 @@ export default function Transactions() {
               {timeFilter === 'custom' && (
                 <>
                   <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} style={dateInputStyle} />
-                  <span style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>sampai</span>
+                  <span style={{ color: 'var(--color-text-muted)', fontSize: 13, flexShrink: 0 }}>sampai</span>
                   <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} style={dateInputStyle} />
                   <button
                     onClick={handleApplyCustom}
@@ -230,6 +232,7 @@ export default function Transactions() {
                       fontSize: 13,
                       fontWeight: 600,
                       cursor: 'pointer',
+                      flexShrink: 0,
                     }}
                   >
                     Terapkan
@@ -238,7 +241,7 @@ export default function Transactions() {
               )}
             </div>
 
-            <div style={{ position: 'relative', width: 240 }}>
+            <div style={{ position: 'relative', width: 220, flexShrink: 0 }}>
               <Search
                 size={16}
                 color="var(--color-text-muted)"

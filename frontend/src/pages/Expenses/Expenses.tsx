@@ -7,6 +7,8 @@ import AddExpenseForm from '@/features/expenses/AddExpenseForm'
 import Card from '@/components/Card/Card'
 import Modal from '@/components/Modal/Modal'
 import PageTopBar from '@/components/PageTopBar/PageTopBar'
+import Loading from '@/components/Loading/Loading'
+import { jakartaDateString, jakartaDateOnly, addJakartaDays, startOfJakartaMonth, endOfJakartaMonth, startOfJakartaYear, endOfJakartaYear } from '@/lib/time'
 
 function formatRupiah(value: number) {
   return `Rp${value.toLocaleString('id-ID')}`
@@ -59,35 +61,37 @@ export default function Expenses() {
   }, [filteredExpenses])
 
   const totalChartData = useMemo(() => {
-    const now = new Date()
-
     if (period === '7d') {
+      const rangeStart = addJakartaDays(new Date(), -6)
       return Array.from({ length: 7 }).map((_, i) => {
-        const day = new Date()
-        day.setDate(day.getDate() - 6 + i)
-        const dayStr = day.toISOString().split('T')[0]
+        const day = addJakartaDays(rangeStart, i)
+        const dayStr = jakartaDateString(day)
         const total = expenses.filter((e) => e.expense_date === dayStr).reduce((s, e) => s + e.amount, 0)
-        return { label: day.toLocaleDateString('id-ID', { weekday: 'short' }), total }
+        return { label: day.toLocaleDateString('id-ID', { weekday: 'short', timeZone: 'Asia/Jakarta' }), total }
       })
     }
 
     if (period === '1m') {
-      const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
-      return Array.from({ length: daysInMonth }).map((_, i) => {
-        const dayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`
+      const rangeStart = startOfJakartaMonth()
+      const rangeEnd = endOfJakartaMonth()
+      const daysInRange = Math.round((rangeEnd.getTime() - rangeStart.getTime() + 1) / (24 * 60 * 60 * 1000))
+      return Array.from({ length: daysInRange }).map((_, i) => {
+        const day = addJakartaDays(rangeStart, i)
+        const dayStr = jakartaDateString(day)
         const total = expenses.filter((e) => e.expense_date === dayStr).reduce((s, e) => s + e.amount, 0)
         return { label: String(i + 1), total }
       })
     }
 
+    const yearRef = jakartaDateOnly(startOfJakartaYear()).y
     return Array.from({ length: 12 }).map((_, i) => {
       const total = expenses
         .filter((e) => {
-          const d = new Date(e.expense_date)
-          return d.getMonth() === i && d.getFullYear() === now.getFullYear()
+          const { y, m } = jakartaDateOnly(new Date(e.expense_date))
+          return m - 1 === i && y === yearRef
         })
         .reduce((s, e) => s + e.amount, 0)
-      const label = new Date(now.getFullYear(), i, 1).toLocaleDateString('id-ID', { month: 'short' })
+      const label = new Date(2000, i, 1).toLocaleDateString('id-ID', { month: 'short' })
       return { label, total }
     })
   }, [expenses, period])
@@ -189,8 +193,11 @@ export default function Expenses() {
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={totalChartData}>
                   <XAxis dataKey="label" stroke="var(--color-text-muted)" fontSize={11} />
-                  <YAxis stroke="var(--color-text-muted)" fontSize={12} />
-                  <Tooltip formatter={(value) => formatRupiah(Number(value))} />
+                  <YAxis stroke="var(--color-text-muted)" fontSize={12} tickFormatter={(v: number) => v.toLocaleString('id-ID')} width={70} />
+                  <Tooltip
+                    formatter={(value) => formatRupiah(Number(value))}
+                    contentStyle={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: 10, color: 'var(--color-text)' }}
+                  />
                   <Bar dataKey="total" fill="#95B1EE" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -228,7 +235,7 @@ export default function Expenses() {
 
           <Card style={{ boxShadow: 'var(--shadow-card)', padding: 0, overflow: 'hidden' }}>
             {loading ? (
-              <p style={{ padding: 20 }}>Memuat...</p>
+              <Loading />
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
@@ -242,7 +249,7 @@ export default function Expenses() {
                 <tbody>
                   {filteredExpenses.map((e) => (
                     <tr key={e.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                      <td style={{ padding: 14 }}>{new Date(e.expense_date).toLocaleDateString('id-ID')}</td>
+                      <td style={{ padding: 14 }}>{new Date(e.expense_date).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })}</td>
                       <td style={{ padding: 14, color: 'var(--color-primary)', fontWeight: 600 }}>{e.description}</td>
                       <td style={{ padding: 14 }}>{e.category}</td>
                       <td style={{ padding: 14, fontWeight: 700 }}>{formatRupiah(e.amount)}</td>

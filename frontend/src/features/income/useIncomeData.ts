@@ -2,6 +2,16 @@ import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useBusinessFilter } from '@/context/BusinessFilterContext'
 import { filterItemsByCategory } from '@/lib/categoryFilter'
+import {
+  jakartaDateString,
+  jakartaDateOnly,
+  endOfJakartaDay,
+  startOfJakartaMonth,
+  endOfJakartaMonth,
+  startOfJakartaYear,
+  endOfJakartaYear,
+  addJakartaDays,
+} from '@/lib/time'
 
 export type IncomeChartPeriod = '7d' | '1m' | '1y'
 
@@ -38,22 +48,18 @@ export function useIncomeData(period: IncomeChartPeriod) {
   const fetchData = useCallback(async () => {
     setLoading(true)
 
-    const now = new Date()
     let rangeStart: Date
     let rangeEnd: Date
 
     if (period === '7d') {
-      rangeStart = new Date()
-      rangeStart.setDate(rangeStart.getDate() - 6)
-      rangeStart.setHours(0, 0, 0, 0)
-      rangeEnd = new Date()
-      rangeEnd.setHours(23, 59, 59, 999)
+      rangeStart = addJakartaDays(new Date(), -6)
+      rangeEnd = endOfJakartaDay()
     } else if (period === '1m') {
-      rangeStart = new Date(now.getFullYear(), now.getMonth(), 1)
-      rangeEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+      rangeStart = startOfJakartaMonth()
+      rangeEnd = endOfJakartaMonth()
     } else {
-      rangeStart = new Date(now.getFullYear(), 0, 1)
-      rangeEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999)
+      rangeStart = startOfJakartaYear()
+      rangeEnd = endOfJakartaYear()
     }
 
     const { data: transactions } = await supabase
@@ -82,30 +88,33 @@ export function useIncomeData(period: IncomeChartPeriod) {
 
     if (period === '7d') {
       chartData = Array.from({ length: 7 }).map((_, i) => {
-        const day = new Date(rangeStart)
-        day.setDate(day.getDate() + i)
-        const dayStr = day.toISOString().split('T')[0]
-        const income = inRange.filter((t) => t.created_at.startsWith(dayStr)).reduce((s, t) => s + amountFor(t), 0)
-        return { label: day.toLocaleDateString('id-ID', { weekday: 'short' }), income }
+        const day = addJakartaDays(rangeStart, i)
+        const dayStr = jakartaDateString(day)
+        const income = inRange
+          .filter((t) => jakartaDateString(new Date(t.created_at)) === dayStr)
+          .reduce((s, t) => s + amountFor(t), 0)
+        return { label: day.toLocaleDateString('id-ID', { weekday: 'short', timeZone: 'Asia/Jakarta' }), income }
       })
     } else if (period === '1m') {
-      const days = rangeEnd.getDate()
-      chartData = Array.from({ length: days }).map((_, i) => {
-        const day = new Date(rangeStart)
-        day.setDate(i + 1)
-        const dayStr = day.toISOString().split('T')[0]
-        const income = inRange.filter((t) => t.created_at.startsWith(dayStr)).reduce((s, t) => s + amountFor(t), 0)
+      const daysInRange = Math.round((rangeEnd.getTime() - rangeStart.getTime() + 1) / (24 * 60 * 60 * 1000))
+      chartData = Array.from({ length: daysInRange }).map((_, i) => {
+        const day = addJakartaDays(rangeStart, i)
+        const dayStr = jakartaDateString(day)
+        const income = inRange
+          .filter((t) => jakartaDateString(new Date(t.created_at)) === dayStr)
+          .reduce((s, t) => s + amountFor(t), 0)
         return { label: String(i + 1), income }
       })
     } else {
+      const yearRef = jakartaDateOnly(rangeStart).y
       chartData = Array.from({ length: 12 }).map((_, i) => {
         const income = inRange
           .filter((t) => {
-            const d = new Date(t.created_at)
-            return d.getMonth() === i && d.getFullYear() === rangeStart.getFullYear()
+            const { y, m } = jakartaDateOnly(new Date(t.created_at))
+            return m - 1 === i && y === yearRef
           })
           .reduce((s, t) => s + amountFor(t), 0)
-        const label = new Date(rangeStart.getFullYear(), i, 1).toLocaleDateString('id-ID', { month: 'short' })
+        const label = new Date(2000, i, 1).toLocaleDateString('id-ID', { month: 'short' })
         return { label, income }
       })
     }

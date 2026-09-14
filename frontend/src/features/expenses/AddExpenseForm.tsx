@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { jakartaDateString } from '@/lib/time'
 
 const categories = [
   'Belanja stok',
@@ -33,7 +34,7 @@ export default function AddExpenseForm({ onSuccess, onCancel }: AddExpenseFormPr
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState(categories[0])
   const [amount, setAmount] = useState('')
-  const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0])
+  const [expenseDate, setExpenseDate] = useState(jakartaDateString())
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {

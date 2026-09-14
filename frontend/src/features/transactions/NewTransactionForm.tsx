@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Search, X, List, Grid2x2, LayoutGrid, ChevronDown, Banknote, QrCode, Calendar } from 'lucide-react'
+import { Search, X, List, Grid2x2, LayoutGrid, ChevronDown, Banknote, QrCode, Calendar, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useNotifications } from '@/context/NotificationsContext'
+import { jakartaDateString } from '@/lib/time'
 import type { Product } from '@/types/product'
 
 // Nyalain lagi ke `true` kalau nanti fitur uang diterima + kembalian mau dipakai lagi.
@@ -33,7 +34,7 @@ const sizeConfig: Record<Exclude<ViewMode, 'list'>, { minWidth: number; avatar: 
 }
 
 function todayStr() {
-  return new Date().toISOString().split('T')[0]
+  return jakartaDateString()
 }
 
 export default function NewTransactionForm({ onSuccess, onCancel }: NewTransactionFormProps) {
@@ -241,7 +242,7 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 8,
+                        justifyContent: 'space-between',
                         width: '100%',
                         padding: '8px 10px',
                         borderRadius: 6,
@@ -253,8 +254,11 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
                         textAlign: 'left',
                       }}
                     >
-                      {opt.icon}
-                      {opt.label}
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {opt.icon}
+                        {opt.label}
+                      </span>
+                      {viewMode === opt.value && <Check size={14} color="var(--color-primary)" />}
                     </button>
                   ))}
                 </div>

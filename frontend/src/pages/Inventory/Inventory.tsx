@@ -419,47 +419,51 @@ export default function Inventory() {
           <div style={{ width: '50%', paddingLeft: 10, boxSizing: 'border-box' }}>
             <Card style={{ boxShadow: 'var(--shadow-card)', minHeight: 420 }}>
               <h3 style={{ marginBottom: 16 }}>Riwayat Stok</h3>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                <div style={{ position: 'relative', flex: 1 }}>
-                  <Search size={16} color="var(--color-text-muted)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
-                  <input placeholder="Cari riwayat..." value={historySearch} onChange={(e) => setHistorySearch(e.target.value)} style={searchInputStyle} />
-                </div>
-                <ViewSwitcher value={historyView} onChange={setHistoryView} />
-              </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-                <div style={{ display: 'inline-flex', padding: 3, borderRadius: 16, background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
-                  {timeOptions.map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => setHistoryTimeFilter(opt.value)}
-                      style={{
-                        padding: '5px 12px',
-                        borderRadius: 13,
-                        border: 'none',
-                        fontSize: 12,
-                        cursor: 'pointer',
-                        background: historyTimeFilter === opt.value ? 'var(--color-primary)' : 'transparent',
-                        color: historyTimeFilter === opt.value ? '#fff' : 'var(--color-text)',
-                      }}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 12, flexWrap: 'nowrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'inline-flex', padding: 3, borderRadius: 16, background: 'var(--color-bg)', border: '1px solid var(--color-border)', flexShrink: 0 }}>
+                    {timeOptions.map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setHistoryTimeFilter(opt.value)}
+                        style={{
+                          padding: '5px 12px',
+                          borderRadius: 13,
+                          border: 'none',
+                          fontSize: 12,
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          background: historyTimeFilter === opt.value ? 'var(--color-primary)' : 'transparent',
+                          color: historyTimeFilter === opt.value ? '#fff' : 'var(--color-text)',
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  {historyTimeFilter === 'custom' && (
+                    <>
+                      <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} style={dateInputStyle} />
+                      <span style={{ fontSize: 12, color: 'var(--color-text-muted)', flexShrink: 0 }}>-</span>
+                      <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} style={dateInputStyle} />
+                      <button
+                        onClick={() => { setAppliedFrom(customFrom); setAppliedTo(customTo) }}
+                        style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'var(--color-primary)', color: '#fff', fontSize: 12, cursor: 'pointer', flexShrink: 0 }}
+                      >
+                        Terapkan
+                      </button>
+                    </>
+                  )}
                 </div>
-                {historyTimeFilter === 'custom' && (
-                  <>
-                    <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} style={dateInputStyle} />
-                    <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>-</span>
-                    <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} style={dateInputStyle} />
-                    <button
-                      onClick={() => { setAppliedFrom(customFrom); setAppliedTo(customTo) }}
-                      style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'var(--color-primary)', color: '#fff', fontSize: 12, cursor: 'pointer' }}
-                    >
-                      Terapkan
-                    </button>
-                  </>
-                )}
+
+                <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                  <div style={{ position: 'relative', width: 160 }}>
+                    <Search size={16} color="var(--color-text-muted)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
+                    <input placeholder="Cari riwayat..." value={historySearch} onChange={(e) => setHistorySearch(e.target.value)} style={searchInputStyle} />
+                  </div>
+                  <ViewSwitcher value={historyView} onChange={setHistoryView} />
+                </div>
               </div>
 
               {loading ? (
