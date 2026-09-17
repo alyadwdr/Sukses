@@ -33,12 +33,13 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
 
   async function updateBusiness(fields: Partial<Pick<BusinessSettings, 'name' | 'address' | 'phone'>>) {
     if (!business) return
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('business_settings')
       .update({ ...fields, updated_at: new Date().toISOString() })
       .eq('id', business.id)
       .select()
       .single()
+    if (error) throw error
     if (data) setBusiness(data)
   }
 
