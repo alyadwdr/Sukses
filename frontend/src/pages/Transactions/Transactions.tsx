@@ -8,26 +8,9 @@ import ReceiptCard from '@/features/transactions/ReceiptCard'
 import Card from '@/components/Card/Card'
 import PageTopBar from '@/components/PageTopBar/PageTopBar'
 import Loading from '@/components/Loading/Loading'
+import TimeFilterTabs, { type TimeFilterValue } from '@/components/TimeFilterTabs/TimeFilterTabs'
 
 type ViewMode = 'all' | 'receipts'
-type TimeFilter = 'all' | 'today' | 'month' | 'year' | 'custom'
-
-const timeOptions: { label: string; value: TimeFilter }[] = [
-  { label: 'Semua', value: 'all' },
-  { label: 'Hari Ini', value: 'today' },
-  { label: 'Bulan Ini', value: 'month' },
-  { label: 'Tahun Ini', value: 'year' },
-  { label: 'Kustom', value: 'custom' },
-]
-
-const dateInputStyle = {
-  padding: '8px 12px',
-  borderRadius: 8,
-  border: '1px solid var(--color-border)',
-  background: 'var(--color-bg)',
-  color: 'var(--color-text)',
-  fontSize: 13,
-}
 
 const searchInputStyle = {
   width: '100%',
@@ -44,7 +27,7 @@ export default function Transactions() {
 
   const [showForm, setShowForm] = useState(false)
   const [view, setView] = useState<ViewMode>(highlightTrx ? 'receipts' : 'all')
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>('all')
+  const [timeFilter, setTimeFilter] = useState<TimeFilterValue>('all')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [appliedFrom, setAppliedFrom] = useState('')
@@ -184,64 +167,18 @@ export default function Transactions() {
             </button>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, gap: 12, flexWrap: 'nowrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflowX: 'auto', flex: 1, minWidth: 0 }}>
-              <div
-                style={{
-                  display: 'inline-flex',
-                  padding: 4,
-                  borderRadius: 20,
-                  background: 'var(--color-bg)',
-                  border: '1px solid var(--color-border)',
-                  flexShrink: 0,
-                }}
-              >
-                {timeOptions.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => setTimeFilter(opt.value)}
-                    style={{
-                      padding: '6px 14px',
-                      borderRadius: 16,
-                      border: 'none',
-                      fontSize: 13,
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                      background: timeFilter === opt.value ? 'var(--color-primary)' : 'transparent',
-                      color: timeFilter === opt.value ? '#fff' : 'var(--color-text)',
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, gap: 16, flexWrap: 'wrap' }}>
+            <TimeFilterTabs
+              value={timeFilter}
+              onChange={setTimeFilter}
+              customFrom={customFrom}
+              customTo={customTo}
+              onCustomFromChange={setCustomFrom}
+              onCustomToChange={setCustomTo}
+              onApplyCustom={handleApplyCustom}
+            />
 
-              {timeFilter === 'custom' && (
-                <>
-                  <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} style={dateInputStyle} />
-                  <span style={{ color: 'var(--color-text-muted)', fontSize: 13, flexShrink: 0 }}>sampai</span>
-                  <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} style={dateInputStyle} />
-                  <button
-                    onClick={handleApplyCustom}
-                    style={{
-                      padding: '8px 16px',
-                      borderRadius: 8,
-                      border: 'none',
-                      background: 'var(--color-primary)',
-                      color: '#fff',
-                      fontSize: 13,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                    }}
-                  >
-                    Terapkan
-                  </button>
-                </>
-              )}
-            </div>
-
-            <div style={{ position: 'relative', width: 220, flexShrink: 0 }}>
+            <div style={{ position: 'relative', width: 300, flexShrink: 0 }}>
               <Search
                 size={16}
                 color="var(--color-text-muted)"

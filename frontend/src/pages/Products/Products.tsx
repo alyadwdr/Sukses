@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Plus, Search, List, Grid2x2, LayoutGrid, ChevronDown, Pencil, Trash2, Info, Check } from 'lucide-react'
 import { useProducts } from '@/features/products/useProducts'
 import AddProductForm from '@/features/products/AddProductForm'
@@ -10,6 +10,7 @@ import ConfirmModal from '@/components/ConfirmModal/ConfirmModal'
 import CategoryBadge from '@/components/CategoryBadge/CategoryBadge'
 import PageTopBar from '@/components/PageTopBar/PageTopBar'
 import Loading from '@/components/Loading/Loading'
+import SortControl, { type SortField, type SortDirection } from '@/components/SortControl/SortControl'
 import { supabase } from '@/lib/supabase'
 import type { Product } from '@/types/product'
 
@@ -52,10 +53,23 @@ export default function Products() {
   const [search, setSearch] = useState('')
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [viewMenuOpen, setViewMenuOpen] = useState(false)
+  const [sortField, setSortField] = useState<SortField>('name')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
 
   const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase())
   )
+
+  const sortedProducts = useMemo(() => {
+    const sorted = [...filteredProducts].sort((a, b) => {
+      let cmp = 0
+      if (sortField === 'name') cmp = a.name.localeCompare(b.name)
+      else if (sortField === 'updated') cmp = new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime()
+      else if (sortField === 'stock') cmp = a.stock - b.stock
+      return sortDirection === 'asc' ? cmp : -cmp
+    })
+    return sorted
+  }, [filteredProducts, sortField, sortDirection])
 
   async function handleDelete() {
     if (!deletingProduct) return
@@ -111,6 +125,8 @@ export default function Products() {
               }}
             />
           </div>
+
+          <SortControl field={sortField} direction={sortDirection} onFieldChange={setSortField} onDirectionChange={setSortDirection} />
 
           <div style={{ position: 'relative' }}>
             <button
@@ -199,7 +215,7 @@ export default function Products() {
               </tr>
             </thead>
             <tbody>
-              {filteredProducts.map((p, i) => (
+              {sortedProducts.map((p, i) => (
                 <tr key={p.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                   <td style={{ padding: 14, color: 'var(--color-text-muted)' }}>{i + 1}</td>
                   <td style={{ padding: 14, fontWeight: 600 }}>{p.name}</td>
@@ -248,7 +264,7 @@ export default function Products() {
               gap: 12,
             }}
           >
-            {filteredProducts.map((p) => (
+            {sortedProducts.map((p) => (
               <div
                 key={p.id}
                 style={{

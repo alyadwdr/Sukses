@@ -7,25 +7,18 @@ import Card from '@/components/Card/Card'
 import PageTopBar from '@/components/PageTopBar/PageTopBar'
 import CategoryBadge from '@/components/CategoryBadge/CategoryBadge'
 import Loading from '@/components/Loading/Loading'
+import SortControl, { type SortField, type SortDirection } from '@/components/SortControl/SortControl'
+import TimeFilterTabs, { type TimeFilterValue } from '@/components/TimeFilterTabs/TimeFilterTabs'
 import { useBusinessFilter } from '@/context/BusinessFilterContext'
 import { useNotifications } from '@/context/NotificationsContext'
 
 type ViewMode = 'list' | 'large' | 'medium' | 'small'
-type TimeFilter = 'all' | 'today' | 'month' | 'year' | 'custom'
 
 const viewOptions: { value: ViewMode; label: string; icon: React.ReactNode }[] = [
   { value: 'list', label: 'Daftar', icon: <List size={15} /> },
   { value: 'large', label: 'Ikon Besar', icon: <Grid2x2 size={15} /> },
   { value: 'medium', label: 'Ikon Sedang', icon: <LayoutGrid size={15} /> },
   { value: 'small', label: 'Ikon Kecil', icon: <LayoutGrid size={13} /> },
-]
-
-const timeOptions: { label: string; value: TimeFilter }[] = [
-  { label: 'Semua', value: 'all' },
-  { label: 'Hari Ini', value: 'today' },
-  { label: 'Bulan Ini', value: 'month' },
-  { label: 'Tahun Ini', value: 'year' },
-  { label: 'Kustom', value: 'custom' },
 ]
 
 const sizeConfig: Record<Exclude<ViewMode, 'list'>, { minWidth: number; avatar: number; font: number }> = {
@@ -49,15 +42,6 @@ const searchInputStyle = {
   border: '1px solid var(--color-border)',
   background: 'var(--color-bg)',
   color: 'var(--color-text)',
-}
-
-const dateInputStyle = {
-  padding: '6px 10px',
-  borderRadius: 8,
-  border: '1px solid var(--color-border)',
-  background: 'var(--color-bg)',
-  color: 'var(--color-text)',
-  fontSize: 12,
 }
 
 function ViewSwitcher({ value, onChange }: { value: ViewMode; onChange: (v: ViewMode) => void }) {
@@ -179,11 +163,13 @@ export default function Inventory() {
   const [historySearch, setHistorySearch] = useState('')
   const [stockView, setStockView] = useState<ViewMode>('list')
   const [historyView, setHistoryView] = useState<ViewMode>('list')
-  const [historyTimeFilter, setHistoryTimeFilter] = useState<TimeFilter>('all')
+  const [historyTimeFilter, setHistoryTimeFilter] = useState<TimeFilterValue>('all')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [appliedFrom, setAppliedFrom] = useState('')
   const [appliedTo, setAppliedTo] = useState('')
+  const [sortField, setSortField] = useState<SortField>('name')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
 
   const touchStartX = useRef<number | null>(null)
   const lastWheelTime = useRef(0)
@@ -234,6 +220,21 @@ export default function Inventory() {
     p.name.toLowerCase().includes(stockSearch.toLowerCase())
   )
 
+  const sortedProducts = useMemo(() => {
+    const sorted = [...filteredProducts].sort((a, b) => {
+      let cmp = 0
+      if (sortField === 'name') cmp = a.name.localeCompare(b.name)
+      else if (sortField === 'stock') cmp = a.stock - b.stock
+      else if (sortField === 'updated') {
+        const aTime = lastUpdateMap[a.id] ? new Date(lastUpdateMap[a.id]).getTime() : 0
+        const bTime = lastUpdateMap[b.id] ? new Date(lastUpdateMap[b.id]).getTime() : 0
+        cmp = aTime - bTime
+      }
+      return sortDirection === 'asc' ? cmp : -cmp
+    })
+    return sorted
+  }, [filteredProducts, sortField, sortDirection, lastUpdateMap])
+
   const movementsByBusiness = useMemo(
     () => movements.filter((m) => filter === 'all' || m.products.category === filter),
     [movements, filter]
@@ -268,6 +269,11 @@ export default function Inventory() {
   const filteredMovements = movementsByTime.filter((m) =>
     m.products.name.toLowerCase().includes(historySearch.toLowerCase())
   )
+
+  function handleApplyCustom() {
+    setAppliedFrom(customFrom)
+    setAppliedTo(customTo)
+  }
 
   return (
     <div>
@@ -329,6 +335,7 @@ export default function Inventory() {
                   <Search size={16} color="var(--color-text-muted)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
                   <input placeholder="Cari stok..." value={stockSearch} onChange={(e) => setStockSearch(e.target.value)} style={searchInputStyle} />
                 </div>
+                <SortControl field={sortField} direction={sortDirection} onFieldChange={setSortField} onDirectionChange={setSortDirection} />
                 <ViewSwitcher value={stockView} onChange={setStockView} />
               </div>
 
@@ -347,7 +354,7 @@ export default function Inventory() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredProducts.map((p, i) => (
+                    {sortedProducts.map((p, i) => (
                       <tr key={p.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                         <td style={{ padding: 14, color: 'var(--color-text-muted)' }}>{i + 1}</td>
                         <td style={{ padding: 14, fontWeight: 600 }}>{p.name}</td>
@@ -379,7 +386,7 @@ export default function Inventory() {
                 </table>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${sizeConfig[stockView].minWidth}px, 1fr))`, gap: 12 }}>
-                  {filteredProducts.map((p) => (
+                  {sortedProducts.map((p) => (
                     <div key={p.id} style={{ padding: 10, borderRadius: 12, border: '1px solid var(--color-border)', textAlign: 'center' }}>
                       <div
                         style={{
@@ -420,45 +427,19 @@ export default function Inventory() {
             <Card style={{ boxShadow: 'var(--shadow-card)', minHeight: 420 }}>
               <h3 style={{ marginBottom: 16 }}>Riwayat Stok</h3>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 12, flexWrap: 'nowrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'inline-flex', padding: 3, borderRadius: 16, background: 'var(--color-bg)', border: '1px solid var(--color-border)', flexShrink: 0 }}>
-                    {timeOptions.map((opt) => (
-                      <button
-                        key={opt.value}
-                        onClick={() => setHistoryTimeFilter(opt.value)}
-                        style={{
-                          padding: '5px 12px',
-                          borderRadius: 13,
-                          border: 'none',
-                          fontSize: 12,
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap',
-                          background: historyTimeFilter === opt.value ? 'var(--color-primary)' : 'transparent',
-                          color: historyTimeFilter === opt.value ? '#fff' : 'var(--color-text)',
-                        }}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                  {historyTimeFilter === 'custom' && (
-                    <>
-                      <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} style={dateInputStyle} />
-                      <span style={{ fontSize: 12, color: 'var(--color-text-muted)', flexShrink: 0 }}>-</span>
-                      <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} style={dateInputStyle} />
-                      <button
-                        onClick={() => { setAppliedFrom(customFrom); setAppliedTo(customTo) }}
-                        style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: 'var(--color-primary)', color: '#fff', fontSize: 12, cursor: 'pointer', flexShrink: 0 }}
-                      >
-                        Terapkan
-                      </button>
-                    </>
-                  )}
-                </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, gap: 16, flexWrap: 'wrap' }}>
+                <TimeFilterTabs
+                  value={historyTimeFilter}
+                  onChange={setHistoryTimeFilter}
+                  customFrom={customFrom}
+                  customTo={customTo}
+                  onCustomFromChange={setCustomFrom}
+                  onCustomToChange={setCustomTo}
+                  onApplyCustom={handleApplyCustom}
+                />
 
                 <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                  <div style={{ position: 'relative', width: 160 }}>
+                  <div style={{ position: 'relative', width: 220 }}>
                     <Search size={16} color="var(--color-text-muted)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
                     <input placeholder="Cari riwayat..." value={historySearch} onChange={(e) => setHistorySearch(e.target.value)} style={searchInputStyle} />
                   </div>
