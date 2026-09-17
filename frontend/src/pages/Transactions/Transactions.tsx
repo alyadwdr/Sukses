@@ -9,6 +9,7 @@ import Card from '@/components/Card/Card'
 import PageTopBar from '@/components/PageTopBar/PageTopBar'
 import Loading from '@/components/Loading/Loading'
 import TimeFilterTabs, { type TimeFilterValue } from '@/components/TimeFilterTabs/TimeFilterTabs'
+import { jakartaRangeFor } from '@/lib/time'
 
 type ViewMode = 'all' | 'receipts'
 
@@ -48,35 +49,12 @@ export default function Transactions() {
   }, [highlightTrx, loading, transactions])
 
   const timeFilteredTransactions = useMemo(() => {
-    if (timeFilter === 'all') return transactions
-
-    const now = new Date()
-    let start: Date | null = null
-    let end: Date | null = null
-
-    if (timeFilter === 'today') {
-      start = new Date()
-      start.setHours(0, 0, 0, 0)
-      end = new Date()
-      end.setHours(23, 59, 59, 999)
-    } else if (timeFilter === 'month') {
-      start = new Date(now.getFullYear(), now.getMonth(), 1)
-      end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
-    } else if (timeFilter === 'year') {
-      start = new Date(now.getFullYear(), 0, 1)
-      end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999)
-    } else if (timeFilter === 'custom') {
-      if (!appliedFrom || !appliedTo) return transactions
-      start = new Date(appliedFrom)
-      start.setHours(0, 0, 0, 0)
-      end = new Date(appliedTo)
-      end.setHours(23, 59, 59, 999)
-    }
-
+    const { start, end } = jakartaRangeFor(timeFilter, appliedFrom, appliedTo)
     if (!start || !end) return transactions
+
     return transactions.filter((trx) => {
       const d = new Date(trx.created_at)
-      return d >= start! && d <= end!
+      return d >= start && d <= end
     })
   }, [transactions, timeFilter, appliedFrom, appliedTo])
 

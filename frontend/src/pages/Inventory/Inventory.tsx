@@ -11,6 +11,7 @@ import SortControl, { type SortField, type SortDirection } from '@/components/So
 import TimeFilterTabs, { type TimeFilterValue } from '@/components/TimeFilterTabs/TimeFilterTabs'
 import { useBusinessFilter } from '@/context/BusinessFilterContext'
 import { useNotifications } from '@/context/NotificationsContext'
+import { jakartaRangeFor } from '@/lib/time'
 
 type ViewMode = 'list' | 'large' | 'medium' | 'small'
 
@@ -148,7 +149,7 @@ function relativeUpdateLabel(dateStr: string | undefined) {
   if (diffDays < 30) return `${diffDays} hari lalu`
   const diffMonths = Math.floor(diffDays / 30)
   if (diffMonths < 12) return `${diffMonths} bulan lalu`
-  return new Date(dateStr).toLocaleDateString('id-ID')
+  return new Date(dateStr).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })
 }
 
 export default function Inventory() {
@@ -221,7 +222,7 @@ export default function Inventory() {
   )
 
   const sortedProducts = useMemo(() => {
-    const sorted = [...filteredProducts].sort((a, b) => {
+    return [...filteredProducts].sort((a, b) => {
       let cmp = 0
       if (sortField === 'name') cmp = a.name.localeCompare(b.name)
       else if (sortField === 'stock') cmp = a.stock - b.stock
@@ -232,7 +233,6 @@ export default function Inventory() {
       }
       return sortDirection === 'asc' ? cmp : -cmp
     })
-    return sorted
   }, [filteredProducts, sortField, sortDirection, lastUpdateMap])
 
   const movementsByBusiness = useMemo(
@@ -241,28 +241,12 @@ export default function Inventory() {
   )
 
   const movementsByTime = useMemo(() => {
-    if (historyTimeFilter === 'all') return movementsByBusiness
-    const now = new Date()
-    let start: Date | null = null
-    let end: Date | null = null
-    if (historyTimeFilter === 'today') {
-      start = new Date(); start.setHours(0, 0, 0, 0)
-      end = new Date(); end.setHours(23, 59, 59, 999)
-    } else if (historyTimeFilter === 'month') {
-      start = new Date(now.getFullYear(), now.getMonth(), 1)
-      end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
-    } else if (historyTimeFilter === 'year') {
-      start = new Date(now.getFullYear(), 0, 1)
-      end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999)
-    } else if (historyTimeFilter === 'custom') {
-      if (!appliedFrom || !appliedTo) return movementsByBusiness
-      start = new Date(appliedFrom); start.setHours(0, 0, 0, 0)
-      end = new Date(appliedTo); end.setHours(23, 59, 59, 999)
-    }
+    const { start, end } = jakartaRangeFor(historyTimeFilter, appliedFrom, appliedTo)
     if (!start || !end) return movementsByBusiness
+
     return movementsByBusiness.filter((m) => {
       const d = new Date(m.created_at)
-      return d >= start! && d <= end!
+      return d >= start && d <= end
     })
   }, [movementsByBusiness, historyTimeFilter, appliedFrom, appliedTo])
 
@@ -466,7 +450,7 @@ export default function Inventory() {
                     {filteredMovements.map((m, i) => (
                       <tr key={m.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                         <td style={{ padding: 14, color: 'var(--color-text-muted)' }}>{i + 1}</td>
-                        <td style={{ padding: 14 }}>{new Date(m.created_at).toLocaleDateString('id-ID')}</td>
+                        <td style={{ padding: 14 }}>{new Date(m.created_at).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })}</td>
                         <td style={{ padding: 14, fontWeight: 600 }}>{m.products.name}</td>
                         <td style={{ padding: 14, color: 'var(--color-text-muted)' }}>{m.products.variant || '-'}</td>
                         <td style={{ padding: 14 }}>

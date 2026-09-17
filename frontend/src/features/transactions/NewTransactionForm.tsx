@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Search, X, List, Grid2x2, LayoutGrid, ChevronDown, Banknote, QrCode, Calendar, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useNotifications } from '@/context/NotificationsContext'
-import { jakartaDateString } from '@/lib/time'
+import { jakartaDateString, jakartaTimestampOnDate } from '@/lib/time'
 import type { Product } from '@/types/product'
 
 // Nyalain lagi ke `true` kalau nanti fitur uang diterima + kembalian mau dipakai lagi.
@@ -46,6 +46,7 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
   const [notes, setNotes] = useState('')
   const [transactionDate, setTransactionDate] = useState(todayStr())
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [viewMenuOpen, setViewMenuOpen] = useState(false)
   const { refetch: refetchNotifications } = useNotifications()
@@ -100,52 +101,34 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
   async function handleCompleteSale() {
     if (cart.length === 0 || cashInvalid) return
     setSaving(true)
+    setSaveError('')
 
-    const now = new Date()
-    const [year, month, day] = transactionDate.split('-').map(Number)
-    const createdAt = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds())
-
-    const { data: trx, error: trxError } = await supabase
-      .from('transactions')
-      .insert({
-        payment_method: paymentMethod,
-        total,
-        notes: notes || null,
-        cash_received: ENABLE_CASH_DETAILS && paymentMethod === 'cash' ? Number(cashReceived) : null,
-        created_at: createdAt.toISOString(),
-      })
-      .select()
-      .single()
-
-    if (trxError || !trx) {
-      setSaving(false)
-      return
-    }
+    const createdAt = jakartaTimestampOnDate(transactionDate)
 
     const items = cart.map((item) => ({
-      transaction_id: trx.id,
       product_id: item.product.id,
       quantity: item.quantity,
       price_at_sale: item.product.selling_price,
       subtotal: item.product.selling_price * item.quantity,
     }))
 
-    await supabase.from('transaction_items').insert(items)
-
-    for (const item of cart) {
-      await supabase
-        .from('products')
-        .update({ stock: item.product.stock - item.quantity })
-        .eq('id', item.product.id)
-
-      await supabase.from('stock_movements').insert({
-        product_id: item.product.id,
-        change: -item.quantity,
-        reason: 'sale',
-      })
-    }
+    const { error } = await supabase.rpc('create_sale', {
+      p_payment_method: paymentMethod,
+      p_total: total,
+      p_notes: notes || null,
+      p_cash_received: ENABLE_CASH_DETAILS && paymentMethod === 'cash' ? Number(cashReceived) : null,
+      p_created_at: createdAt.toISOString(),
+      p_items: items,
+    })
 
     setSaving(false)
+
+    if (error) {
+      console.error('Gagal menyimpan transaksi:', error)
+      setSaveError(error.message || 'Transaksi gagal disimpan. Coba lagi.')
+      return
+    }
+
     refetchNotifications()
     onSuccess()
   }
@@ -229,7 +212,7 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
                     boxShadow: 'var(--shadow-card)',
                     padding: 6,
                     zIndex: 10,
-                    width: 170,
+                    width: 190,
                   }}
                 >
                   {viewOptions.map((opt) => (
@@ -519,12 +502,16 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
               border: '1px solid var(--color-border)',
               background: 'var(--color-card)',
               color: 'var(--color-text)',
-              marginBottom: 16,
+              marginBottom: 12,
               resize: 'none',
               fontFamily: 'var(--font-body)',
               fontSize: 13,
             }}
           />
+
+          {saveError && (
+            <div style={{ fontSize: 12, color: '#c0392b', marginBottom: 12, fontWeight: 600 }}>{saveError}</div>
+          )}
 
           <div style={{ display: 'flex', gap: 8 }}>
             <button

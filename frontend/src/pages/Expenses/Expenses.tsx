@@ -8,7 +8,7 @@ import Card from '@/components/Card/Card'
 import Modal from '@/components/Modal/Modal'
 import PageTopBar from '@/components/PageTopBar/PageTopBar'
 import Loading from '@/components/Loading/Loading'
-import { jakartaDateString, jakartaDateOnly, addJakartaDays, startOfJakartaMonth, endOfJakartaMonth, startOfJakartaYear, endOfJakartaYear } from '@/lib/time'
+import { jakartaDateString, jakartaDateOnly, addJakartaDays, startOfJakartaMonth, endOfJakartaMonth, startOfJakartaYear } from '@/lib/time'
 
 function formatRupiah(value: number) {
   return `Rp${value.toLocaleString('id-ID')}`
