@@ -126,7 +126,7 @@ export default function ImageCropUpload({ value, onChange }: ImageCropUploadProp
           <button
             type="button"
             onClick={handleConfirm}
-            style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--color-primary)', color: '#fff', fontWeight: 600, cursor: 'pointer' }}
+            style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--color-primary-solid)', color: 'var(--color-on-primary)', fontWeight: 600, cursor: 'pointer' }}
           >
             Gunakan Foto
           </button>
@@ -142,7 +142,7 @@ export default function ImageCropUpload({ value, onChange }: ImageCropUploadProp
           width: 72,
           height: 72,
           borderRadius: 12,
-          background: 'var(--color-bg)',
+          background: 'var(--color-surface-muted)',
           border: '1px dashed var(--color-border)',
           display: 'flex',
           alignItems: 'center',
@@ -174,7 +174,7 @@ export default function ImageCropUpload({ value, onChange }: ImageCropUploadProp
             padding: '8px 14px',
             borderRadius: 8,
             border: '1px solid var(--color-border)',
-            background: 'var(--color-bg)',
+            background: 'var(--color-surface-muted)',
             color: 'var(--color-text)',
             fontSize: 13,
             cursor: 'pointer',
@@ -192,7 +192,7 @@ export default function ImageCropUpload({ value, onChange }: ImageCropUploadProp
               borderRadius: 8,
               border: '1px solid var(--color-border)',
               background: 'var(--color-card)',
-              color: '#c0392b',
+              color: 'var(--color-danger-text)',
               cursor: 'pointer',
             }}
           >

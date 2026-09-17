@@ -6,6 +6,7 @@ import { useDashboardData, type ChartPeriod } from '@/features/dashboard/useDash
 import Card from '@/components/Card/Card'
 import PageTopBar from '@/components/PageTopBar/PageTopBar'
 import Loading from '@/components/Loading/Loading'
+import { useChartColors } from '@/lib/chartColors'
 
 function formatRupiah(value: number) {
   return `Rp${value.toLocaleString('id-ID')}`
@@ -17,13 +18,18 @@ const periodOptions: { label: string; value: ChartPeriod }[] = [
   { label: '1Y', value: '1y' },
 ]
 
-const DONUT_COLORS = ['#95B1EE', '#E7F1A8', '#364C84', '#B9CDF3', '#F0F6C8', '#6D89C4', '#D5E28E', '#28345C', '#AFC6F0', '#8FA9DE']
-
-const linkStyle = { color: 'var(--color-primary)', fontSize: 14, textDecoration: 'none' }
+const linkStyle = {
+  color: 'var(--color-primary-text)',
+  fontSize: 14,
+  fontWeight: 600,
+  textDecoration: 'none',
+}
 
 export default function Dashboard() {
   const [period, setPeriod] = useState<ChartPeriod>('7d')
   const { data, loading } = useDashboardData(period)
+  const chart = useChartColors()
+  const donutColors = chart.donut
 
   if (loading || !data) return <Loading />
 
@@ -41,9 +47,9 @@ export default function Dashboard() {
             <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 6 }}>Pengeluaran</div>
             <div style={{ fontSize: 22, fontWeight: 700 }}>{formatRupiah(data.todayExpenses)}</div>
           </Card>
-          <Card style={{ boxShadow: 'var(--shadow-card)', background: 'var(--color-text)' }}>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 6 }}>Laba Bersih</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-accent)' }}>
+          <Card style={{ boxShadow: 'var(--shadow-card)', background: 'var(--color-inverse-surface)', borderColor: 'transparent' }}>
+            <div style={{ fontSize: 13, color: 'var(--color-on-inverse-muted)', marginBottom: 6 }}>Laba Bersih</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-accent-on-inverse)' }}>
               {formatRupiah(data.todayNetProfit)}
             </div>
           </Card>
@@ -56,7 +62,7 @@ export default function Dashboard() {
         <Card style={{ flex: 1, boxShadow: 'var(--shadow-card)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <h3>Ringkasan Penjualan</h3>
-            <div style={{ display: 'inline-flex', padding: 4, borderRadius: 20, background: 'var(--color-bg)' }}>
+            <div style={{ display: 'inline-flex', padding: 4, borderRadius: 20, background: 'var(--color-surface-muted)' }}>
               {periodOptions.map((opt) => (
                 <button
                   key={opt.value}
@@ -67,8 +73,8 @@ export default function Dashboard() {
                     border: 'none',
                     fontSize: 13,
                     cursor: 'pointer',
-                    background: period === opt.value ? 'var(--color-primary)' : 'transparent',
-                    color: period === opt.value ? '#fff' : 'var(--color-text)',
+                    background: period === opt.value ? 'var(--color-primary-solid)' : 'transparent',
+                    color: period === opt.value ? 'var(--color-on-primary)' : 'var(--color-text)',
                   }}
                 >
                   {opt.label}
@@ -99,18 +105,18 @@ export default function Dashboard() {
                   color: 'var(--color-text)',
                 }}
               />
-              <Bar dataKey="sales" fill="#95B1EE" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="expenses" fill="#364C84" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="sales" fill={chart.sales} radius={[6, 6, 0, 0]} />
+              <Bar dataKey="expenses" fill={chart.expenses} radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
 
           <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 8, fontSize: 12, color: 'var(--color-text-muted)' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ width: 8, height: 8, borderRadius: 2, background: '#95B1EE', display: 'inline-block' }} />
+              <span style={{ width: 8, height: 8, borderRadius: 2, background: chart.sales, display: 'inline-block' }} />
               Penjualan
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--color-text)', display: 'inline-block' }} />
+              <span style={{ width: 8, height: 8, borderRadius: 2, background: chart.expenses, display: 'inline-block' }} />
               Pengeluaran
             </span>
           </div>
@@ -140,7 +146,7 @@ export default function Dashboard() {
                   alignItems: 'center',
                 }}
               >
-                <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>{trx.trx_number}</span>
+                <span style={{ color: 'var(--color-primary-text)', fontWeight: 600 }}>{trx.trx_number}</span>
                 <span style={{ color: 'var(--color-text-muted)' }}>{new Date(trx.created_at).toLocaleDateString('id-ID')}</span>
                 <span style={{ textAlign: 'right', color: 'var(--color-text-muted)' }}>{trx.itemCount} item</span>
                 <span style={{ textAlign: 'right', fontWeight: 600 }}>{formatRupiah(trx.total)}</span>
@@ -154,6 +160,7 @@ export default function Dashboard() {
             style={{
               flex: 1,
               background: 'var(--color-accent)',
+              borderColor: 'var(--color-accent-border)',
               boxShadow: 'var(--shadow-card)',
               display: 'flex',
               alignItems: 'center',
@@ -161,8 +168,8 @@ export default function Dashboard() {
             }}
           >
             <div>
-              <h3 style={{ color: 'var(--color-text)', marginBottom: 6 }}>Stok Menipis</h3>
-              <p style={{ color: 'var(--color-text)', opacity: 0.8, fontSize: 14 }}>
+              <h3 style={{ color: 'var(--color-on-accent)', marginBottom: 6 }}>Stok Menipis</h3>
+              <p style={{ color: 'var(--color-on-accent-muted)', fontSize: 14 }}>
                 Semua item stoknya masih aman.
               </p>
             </div>
@@ -171,14 +178,14 @@ export default function Dashboard() {
                 width: 48,
                 height: 48,
                 borderRadius: '50%',
-                background: 'rgba(255,255,255,0.5)',
+                background: 'var(--color-accent-tint)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
               }}
             >
-              <ThumbsUp size={22} color="var(--color-text)" />
+              <ThumbsUp size={22} color="var(--color-on-accent)" />
             </div>
           </Card>
         ) : (
@@ -219,7 +226,7 @@ export default function Dashboard() {
                 <PieChart>
                   <Pie data={data.bestSellers} dataKey="qty" nameKey="name" innerRadius={42} outerRadius={65} paddingAngle={2}>
                     {data.bestSellers.map((_, i) => (
-                      <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
+                      <Cell key={i} fill={donutColors[i % donutColors.length]} />
                     ))}
                   </Pie>
                   <Tooltip
@@ -241,7 +248,7 @@ export default function Dashboard() {
                         width: 8,
                         height: 8,
                         borderRadius: '50%',
-                        background: DONUT_COLORS[i % DONUT_COLORS.length],
+                        background: donutColors[i % donutColors.length],
                       }}
                     />
                     <span>{p.name}</span>

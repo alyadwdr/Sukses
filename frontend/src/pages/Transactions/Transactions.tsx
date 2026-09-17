@@ -18,7 +18,7 @@ const searchInputStyle = {
   padding: '10px 12px 10px 38px',
   borderRadius: 10,
   border: '1px solid var(--color-border)',
-  background: 'var(--color-bg)',
+  background: 'var(--color-surface-muted)',
   color: 'var(--color-text)',
 }
 
@@ -87,8 +87,8 @@ export default function Transactions() {
                 gap: 6,
                 padding: '10px 20px',
                 borderRadius: 24,
-                background: 'var(--color-primary)',
-                color: '#fff',
+                background: 'var(--color-primary-solid)',
+                color: 'var(--color-on-primary)',
                 border: 'none',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -112,14 +112,14 @@ export default function Transactions() {
         </Card>
       ) : (
         <Card style={{ boxShadow: 'var(--shadow-card)', minHeight: '70vh' }}>
-          <div style={{ display: 'flex', gap: 24, borderBottom: '1px solid var(--color-border)', marginBottom: 20 }}>
+          <div style={{ display: 'flex', gap: 24, borderBottom: '1px solid var(--color-divider)', marginBottom: 20 }}>
             <button
               onClick={() => setView('all')}
               style={{
                 padding: '10px 4px',
                 background: 'transparent',
                 border: 'none',
-                borderBottom: view === 'all' ? '2px solid var(--color-primary)' : '2px solid transparent',
+                borderBottom: view === 'all' ? '2px solid var(--color-primary-text)' : '2px solid transparent',
                 color: view === 'all' ? 'var(--color-text)' : 'var(--color-text-muted)',
                 fontWeight: view === 'all' ? 600 : 400,
                 cursor: 'pointer',
@@ -134,7 +134,7 @@ export default function Transactions() {
                 padding: '10px 4px',
                 background: 'transparent',
                 border: 'none',
-                borderBottom: view === 'receipts' ? '2px solid var(--color-primary)' : '2px solid transparent',
+                borderBottom: view === 'receipts' ? '2px solid var(--color-primary-text)' : '2px solid transparent',
                 color: view === 'receipts' ? 'var(--color-text)' : 'var(--color-text-muted)',
                 fontWeight: view === 'receipts' ? 600 : 400,
                 cursor: 'pointer',

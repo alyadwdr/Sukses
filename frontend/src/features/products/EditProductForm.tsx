@@ -16,7 +16,7 @@ const inputStyle = {
   padding: '12px 14px',
   borderRadius: 10,
   border: '1px solid var(--color-border)',
-  background: 'var(--color-bg)',
+  background: 'var(--color-surface-muted)',
   color: 'var(--color-text)',
   fontFamily: 'var(--font-body)',
 }
@@ -190,7 +190,7 @@ export default function EditProductForm({ product, onSuccess, onCancel }: EditPr
         <button
           type="submit"
           disabled={saving}
-          style={{ padding: '12px 28px', borderRadius: 10, border: 'none', background: 'var(--color-primary)', color: '#fff', fontWeight: 600, cursor: 'pointer' }}
+          style={{ padding: '12px 28px', borderRadius: 10, border: 'none', background: 'var(--color-primary-solid)', color: 'var(--color-on-primary)', fontWeight: 600, cursor: 'pointer' }}
         >
           {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
         </button>

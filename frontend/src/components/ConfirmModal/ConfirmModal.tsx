@@ -34,8 +34,8 @@ export default function ConfirmModal({
             padding: '10px 20px',
             borderRadius: 10,
             border: 'none',
-            background: danger ? '#e74c3c' : 'var(--color-primary)',
-            color: '#fff',
+            background: danger ? 'var(--color-danger)' : 'var(--color-primary-solid)',
+            color: 'var(--color-on-danger)',
             fontWeight: 600,
             cursor: 'pointer',
           }}

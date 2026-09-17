@@ -6,6 +6,7 @@ import { useIncomeData, type IncomeChartPeriod } from '@/features/income/useInco
 import Card from '@/components/Card/Card'
 import PageTopBar from '@/components/PageTopBar/PageTopBar'
 import Loading from '@/components/Loading/Loading'
+import { useChartColors } from '@/lib/chartColors'
 
 function formatRupiah(value: number) {
   return `Rp${value.toLocaleString('id-ID')}`
@@ -20,6 +21,7 @@ const periodOptions: { label: string; value: IncomeChartPeriod }[] = [
 export default function Income() {
   const [period, setPeriod] = useState<IncomeChartPeriod>('7d')
   const { data, loading } = useIncomeData(period)
+  const chart = useChartColors()
 
   if (loading || !data) return <Loading />
 
@@ -28,11 +30,11 @@ export default function Income() {
       <PageTopBar title="Pemasukan" />
 
       <div style={{ display: 'flex', gap: 20, marginBottom: 20, flexWrap: 'wrap' }}>
-        <Card style={{ boxShadow: 'var(--shadow-card)', background: 'var(--color-accent)', flex: 1.4, minWidth: 240 }}>
-          <div style={{ fontSize: 12, color: 'var(--color-text)', opacity: 0.7, textTransform: 'uppercase', marginBottom: 8 }}>
+        <Card style={{ boxShadow: 'var(--shadow-card)', background: 'var(--color-accent)', borderColor: 'var(--color-accent-border)', flex: 1.4, minWidth: 240 }}>
+          <div style={{ fontSize: 12, color: 'var(--color-on-accent-muted)', textTransform: 'uppercase', marginBottom: 8 }}>
             Total Pemasukan
           </div>
-          <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--color-text)' }}>{formatRupiah(data.totalIncome)}</div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--color-on-accent)' }}>{formatRupiah(data.totalIncome)}</div>
         </Card>
 
         <Card style={{ boxShadow: 'var(--shadow-card)', flex: 1, minWidth: 200 }}>
@@ -55,7 +57,7 @@ export default function Income() {
       <Card style={{ boxShadow: 'var(--shadow-card)', marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h3>Grafik Pemasukan</h3>
-          <div style={{ display: 'inline-flex', padding: 4, borderRadius: 20, background: 'var(--color-bg)' }}>
+          <div style={{ display: 'inline-flex', padding: 4, borderRadius: 20, background: 'var(--color-surface-muted)' }}>
             {periodOptions.map((opt) => (
               <button
                 key={opt.value}
@@ -66,8 +68,8 @@ export default function Income() {
                   border: 'none',
                   fontSize: 13,
                   cursor: 'pointer',
-                  background: period === opt.value ? 'var(--color-primary)' : 'transparent',
-                  color: period === opt.value ? '#fff' : 'var(--color-text)',
+                  background: period === opt.value ? 'var(--color-primary-solid)' : 'transparent',
+                  color: period === opt.value ? 'var(--color-on-primary)' : 'var(--color-text)',
                 }}
               >
                 {opt.label}
@@ -83,7 +85,7 @@ export default function Income() {
               formatter={(value) => formatRupiah(Number(value))}
               contentStyle={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: 10, color: 'var(--color-text)' }}
             />
-            <Bar dataKey="income" fill="#95B1EE" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="income" fill={chart.sales} radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </Card>
@@ -91,7 +93,7 @@ export default function Income() {
       <Card style={{ boxShadow: 'var(--shadow-card)', padding: 0, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>
+            <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--color-divider)' }}>
               <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>No. Struk</th>
               <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Tanggal</th>
               <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Metode</th>
@@ -100,11 +102,11 @@ export default function Income() {
           </thead>
           <tbody>
             {data.transactionRows.map((row) => (
-              <tr key={row.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+              <tr key={row.id} style={{ borderBottom: '1px solid var(--color-divider)' }}>
                 <td style={{ padding: 14 }}>
                   <Link
                     to={`/dashboard/transactions?highlight=${encodeURIComponent(row.trx_number)}`}
-                    style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}
+                    style={{ color: 'var(--color-primary-text)', fontWeight: 600, textDecoration: 'none' }}
                   >
                     {row.trx_number}
                   </Link>

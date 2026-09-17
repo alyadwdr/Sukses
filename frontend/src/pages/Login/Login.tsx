@@ -90,22 +90,21 @@ export default function Login() {
               width: 56,
               height: 56,
               borderRadius: '50%',
-              background: 'var(--color-text)',
+              background: 'var(--color-inverse-surface)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               marginBottom: 24,
             }}
           >
-            <Store size={26} color="#fff" />
+            <Store size={26} color="var(--color-on-inverse)" />
           </div>
 
-          <h1 style={{ fontSize: 36, color: 'var(--color-text)', marginBottom: 12 }}>{business?.name ?? 'Sukses'}</h1>
+          <h1 style={{ fontSize: 36, color: 'var(--color-on-accent)', marginBottom: 12 }}>{business?.name ?? 'Sukses'}</h1>
 
           <p
             style={{
-              color: 'var(--color-text)',
-              opacity: 0.8,
+              color: 'var(--color-on-accent-muted)',
               fontSize: 15,
             }}
           >
@@ -159,7 +158,7 @@ export default function Login() {
                 padding: '12px 14px 12px 42px',
                 borderRadius: 10,
                 border: '1px solid var(--color-border)',
-                background: 'var(--color-bg)',
+                background: 'var(--color-surface-muted)',
                 color: 'var(--color-text)',
                 fontFamily: 'var(--font-body)',
               }}
@@ -189,7 +188,7 @@ export default function Login() {
                 padding: '12px 14px 12px 42px',
                 borderRadius: 10,
                 border: '1px solid var(--color-border)',
-                background: 'var(--color-bg)',
+                background: 'var(--color-surface-muted)',
                 color: 'var(--color-text)',
                 fontFamily: 'var(--font-body)',
               }}
@@ -197,7 +196,7 @@ export default function Login() {
           </div>
 
           {error && (
-            <p style={{ color: '#c0392b', fontSize: 14 }}>
+            <p style={{ color: 'var(--color-danger-text)', fontSize: 14 }}>
               {error}
             </p>
           )}
@@ -209,8 +208,8 @@ export default function Login() {
               padding: 12,
               borderRadius: 10,
               border: 'none',
-              background: 'var(--color-primary)',
-              color: '#fff',
+              background: 'var(--color-primary-solid)',
+              color: 'var(--color-on-primary)',
               fontWeight: 600,
               cursor: 'pointer',
               marginTop: 8,

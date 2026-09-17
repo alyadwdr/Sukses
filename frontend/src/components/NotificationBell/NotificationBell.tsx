@@ -54,8 +54,8 @@ export default function NotificationBell() {
               position: 'absolute',
               top: -2,
               right: -2,
-              background: '#e74c3c',
-              color: '#fff',
+              background: 'var(--color-danger)',
+              color: 'var(--color-on-primary)',
               fontSize: 10,
               fontWeight: 700,
               minWidth: 16,
@@ -103,11 +103,11 @@ export default function NotificationBell() {
                   style={{
                     padding: 10,
                     borderRadius: 10,
-                    background: n.level === 'critical' ? '#fde2e2' : '#fff8e1',
-                    border: `1px solid ${n.level === 'critical' ? '#f5b7b1' : '#ffe082'}`,
+                    background: n.level === 'critical' ? 'var(--color-danger-bg)' : 'var(--color-warning-bg)',
+                    border: `1px solid ${n.level === 'critical' ? 'var(--color-danger-border)' : 'var(--color-warning-border)'}`,
                   }}
                 >
-                  <div style={{ fontWeight: 600, fontSize: 12, color: n.level === 'critical' ? '#c0392b' : '#b8860b' }}>
+                  <div style={{ fontWeight: 600, fontSize: 12, color: n.level === 'critical' ? 'var(--color-danger-text)' : 'var(--color-warning-text)' }}>
                     {n.level === 'critical' ? 'Stok Kritis' : 'Stok Menipis'}
                   </div>
                   <div style={{ fontSize: 13, color: 'var(--color-text)' }}>

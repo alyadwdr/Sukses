@@ -41,7 +41,7 @@ const searchInputStyle = {
   padding: '10px 12px 10px 38px',
   borderRadius: 10,
   border: '1px solid var(--color-border)',
-  background: 'var(--color-bg)',
+  background: 'var(--color-surface-muted)',
   color: 'var(--color-text)',
 }
 
@@ -56,7 +56,7 @@ function ViewSwitcher({ value, onChange }: { value: ViewMode; onChange: (v: View
           padding: '0 12px',
           borderRadius: 10,
           border: '1px solid var(--color-border)',
-          background: 'var(--color-bg)',
+          background: 'var(--color-surface-muted)',
           color: 'var(--color-text)',
           display: 'flex',
           alignItems: 'center',
@@ -97,7 +97,7 @@ function ViewSwitcher({ value, onChange }: { value: ViewMode; onChange: (v: View
                 padding: '8px 10px',
                 borderRadius: 6,
                 border: 'none',
-                background: value === opt.value ? 'var(--color-bg)' : 'transparent',
+                background: value === opt.value ? 'var(--color-surface-muted)' : 'transparent',
                 color: 'var(--color-text)',
                 cursor: 'pointer',
                 fontSize: 13,
@@ -108,7 +108,7 @@ function ViewSwitcher({ value, onChange }: { value: ViewMode; onChange: (v: View
                 {opt.icon}
                 {opt.label}
               </span>
-              {value === opt.value && <span style={{ color: 'var(--color-primary)' }}>✓</span>}
+              {value === opt.value && <span style={{ color: 'var(--color-primary-text)' }}>✓</span>}
             </button>
           ))}
         </div>
@@ -130,7 +130,7 @@ function DotIndicator({ activeSlide, onSelect }: { activeSlide: number; onSelect
             height: 8,
             borderRadius: 4,
             border: 'none',
-            background: activeSlide === i ? 'var(--color-primary)' : 'var(--color-border)',
+            background: activeSlide === i ? 'var(--color-primary-solid)' : 'var(--color-border)',
             cursor: 'pointer',
             transition: 'width 0.2s ease, background 0.2s ease',
           }}
@@ -272,8 +272,8 @@ export default function Inventory() {
               gap: 6,
               padding: '10px 20px',
               borderRadius: 24,
-              background: 'var(--color-primary)',
-              color: '#fff',
+              background: 'var(--color-primary-solid)',
+              color: 'var(--color-on-primary)',
               border: 'none',
               fontWeight: 600,
               cursor: 'pointer',
@@ -326,7 +326,7 @@ export default function Inventory() {
               {stockView === 'list' ? (
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
-                    <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>
+                    <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--color-divider)' }}>
                       <th style={thStyle}>No.</th>
                       <th style={thStyle}>Produk</th>
                       <th style={thStyle}>Varian</th>
@@ -339,7 +339,7 @@ export default function Inventory() {
                   </thead>
                   <tbody>
                     {sortedProducts.map((p, i) => (
-                      <tr key={p.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                      <tr key={p.id} style={{ borderBottom: '1px solid var(--color-divider)' }}>
                         <td style={{ padding: 14, color: 'var(--color-text-muted)' }}>{i + 1}</td>
                         <td style={{ padding: 14, fontWeight: 600 }}>{p.name}</td>
                         <td style={{ padding: 14, color: 'var(--color-text-muted)' }}>{p.variant || '-'}</td>
@@ -354,8 +354,8 @@ export default function Inventory() {
                               padding: '2px 10px',
                               borderRadius: 12,
                               fontSize: 12,
-                              background: p.stock <= p.min_stock ? '#fde2e2' : '#e2f5e2',
-                              color: p.stock <= p.min_stock ? '#c0392b' : '#27ae60',
+                              background: p.stock <= p.min_stock ? 'var(--color-danger-bg)' : 'var(--color-success-bg)',
+                              color: p.stock <= p.min_stock ? 'var(--color-danger-text)' : 'var(--color-success-text)',
                             }}
                           >
                             {p.stock <= p.min_stock ? 'Menipis' : 'Aman'}
@@ -377,8 +377,8 @@ export default function Inventory() {
                           width: sizeConfig[stockView].avatar,
                           height: sizeConfig[stockView].avatar,
                           borderRadius: 12,
-                          background: p.stock <= p.min_stock ? '#c0392b' : 'var(--color-primary)',
-                          color: '#fff',
+                          background: p.stock <= p.min_stock ? 'var(--color-danger)' : 'var(--color-primary-solid)',
+                          color: 'var(--color-on-primary)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -436,7 +436,7 @@ export default function Inventory() {
               ) : historyView === 'list' ? (
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
-                    <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>
+                    <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--color-divider)' }}>
                       <th style={thStyle}>No.</th>
                       <th style={thStyle}>Tanggal</th>
                       <th style={thStyle}>Produk</th>
@@ -448,7 +448,7 @@ export default function Inventory() {
                   </thead>
                   <tbody>
                     {filteredMovements.map((m, i) => (
-                      <tr key={m.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                      <tr key={m.id} style={{ borderBottom: '1px solid var(--color-divider)' }}>
                         <td style={{ padding: 14, color: 'var(--color-text-muted)' }}>{i + 1}</td>
                         <td style={{ padding: 14 }}>{new Date(m.created_at).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })}</td>
                         <td style={{ padding: 14, fontWeight: 600 }}>{m.products.name}</td>
@@ -456,7 +456,7 @@ export default function Inventory() {
                         <td style={{ padding: 14 }}>
                           <CategoryBadge category={m.products.category} />
                         </td>
-                        <td style={{ padding: 14, color: m.change > 0 ? '#27ae60' : '#c0392b' }}>
+                        <td style={{ padding: 14, color: m.change > 0 ? 'var(--color-success-text)' : 'var(--color-danger-text)' }}>
                           {m.change > 0 ? '+' : ''}
                           {m.change} {m.products.unit}
                         </td>
@@ -476,8 +476,8 @@ export default function Inventory() {
                           width: sizeConfig[historyView].avatar,
                           height: sizeConfig[historyView].avatar,
                           borderRadius: 12,
-                          background: m.change > 0 ? '#27ae60' : '#c0392b',
-                          color: '#fff',
+                          background: m.change > 0 ? 'var(--color-success)' : 'var(--color-danger)',
+                          color: 'var(--color-on-primary)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -492,7 +492,7 @@ export default function Inventory() {
                       {m.products.variant && (
                         <div style={{ fontSize: sizeConfig[historyView].font - 2, color: 'var(--color-text-muted)' }}>{m.products.variant}</div>
                       )}
-                      <div style={{ fontSize: sizeConfig[historyView].font - 1, color: m.change > 0 ? '#27ae60' : '#c0392b' }}>
+                      <div style={{ fontSize: sizeConfig[historyView].font - 1, color: m.change > 0 ? 'var(--color-success-text)' : 'var(--color-danger-text)' }}>
                         {m.change > 0 ? '+' : ''}
                         {m.change} {m.products.unit}
                       </div>

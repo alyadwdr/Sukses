@@ -8,6 +8,7 @@ import Card from '@/components/Card/Card'
 import Modal from '@/components/Modal/Modal'
 import PageTopBar from '@/components/PageTopBar/PageTopBar'
 import Loading from '@/components/Loading/Loading'
+import { useChartColors } from '@/lib/chartColors'
 import { jakartaDateString, jakartaDateOnly, addJakartaDays, startOfJakartaMonth, endOfJakartaMonth, startOfJakartaYear } from '@/lib/time'
 
 function formatRupiah(value: number) {
@@ -22,21 +23,20 @@ const periodOptions: { label: string; value: ChartPeriod }[] = [
   { label: '1Y', value: '1y' },
 ]
 
-const DONUT_COLORS = ['#95B1EE', '#E7F1A8', '#364C84', '#B9CDF3', '#F0F6C8', '#6D89C4', '#D5E28E', '#28345C', '#AFC6F0']
-
 const inputStyle = {
   width: '100%',
   padding: '10px 12px',
   borderRadius: 10,
-  border: '1px solid var(--color-border)',
-  background: 'var(--color-card)',
-  color: 'var(--color-text)',
+  border: '1px solid var(--color-accent-border)',
+  background: 'var(--color-accent-control)',
+  color: 'var(--color-accent-control-text)',
   fontFamily: 'var(--font-body)',
 }
 
 export default function Expenses() {
   const { expenses, loading, refetch } = useExpenses()
   const summary = useExpenseSummary(expenses)
+  const chart = useChartColors()
   const [showForm, setShowForm] = useState(false)
   const [period, setPeriod] = useState<ChartPeriod>('7d')
   const [dateFrom, setDateFrom] = useState('')
@@ -115,8 +115,8 @@ export default function Expenses() {
               gap: 6,
               padding: '10px 20px',
               borderRadius: 24,
-              background: 'var(--color-primary)',
-              color: '#fff',
+              background: 'var(--color-primary-solid)',
+              color: 'var(--color-on-primary)',
               border: 'none',
               fontWeight: 600,
               cursor: 'pointer',
@@ -144,20 +144,28 @@ export default function Expenses() {
               <div style={{ fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 6 }}>Bulan Ini</div>
               <div style={{ fontSize: 18, fontWeight: 700 }}>{formatRupiah(summary.month)}</div>
             </Card>
-            <Card style={{ boxShadow: 'var(--shadow-card)', flex: 1, background: 'var(--color-text)' }}>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', marginBottom: 6 }}>Tahun Ini</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-accent)' }}>{formatRupiah(summary.year)}</div>
+            <Card style={{ boxShadow: 'var(--shadow-card)', flex: 1, background: 'var(--color-inverse-surface)', borderColor: 'transparent' }}>
+              <div style={{ fontSize: 12, color: 'var(--color-on-inverse-muted)', textTransform: 'uppercase', marginBottom: 6 }}>Tahun Ini</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-accent-on-inverse)' }}>{formatRupiah(summary.year)}</div>
             </Card>
           </div>
 
-          <Card style={{ boxShadow: 'var(--shadow-card)', background: 'var(--color-accent)' }}>
-            <h3 style={{ color: 'var(--color-text)', marginBottom: 16 }}>Rentang Tanggal</h3>
+          <Card style={{ boxShadow: 'var(--shadow-card)', background: 'var(--color-accent)', borderColor: 'var(--color-accent-border)' }}>
+            <h3 style={{ color: 'var(--color-on-accent)', marginBottom: 16 }}>Rentang Tanggal</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={inputStyle} />
               <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} style={inputStyle} />
               <button
                 onClick={handleFilter}
-                style={{ padding: 12, borderRadius: 10, border: 'none', background: 'var(--color-text)', color: '#fff', fontWeight: 600, cursor: 'pointer' }}
+                style={{
+                  padding: 12,
+                  borderRadius: 10,
+                  border: 'none',
+                  background: 'var(--color-inverse-surface)',
+                  color: 'var(--color-on-inverse)',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
               >
                 Filter Data
               </button>
@@ -170,7 +178,7 @@ export default function Expenses() {
             <Card style={{ boxShadow: 'var(--shadow-card)', flex: 2 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <h3>Total Pengeluaran</h3>
-                <div style={{ display: 'inline-flex', padding: 4, borderRadius: 20, background: 'var(--color-bg)' }}>
+                <div style={{ display: 'inline-flex', padding: 4, borderRadius: 20, background: 'var(--color-surface-muted)' }}>
                   {periodOptions.map((opt) => (
                     <button
                       key={opt.value}
@@ -181,8 +189,8 @@ export default function Expenses() {
                         border: 'none',
                         fontSize: 13,
                         cursor: 'pointer',
-                        background: period === opt.value ? 'var(--color-primary)' : 'transparent',
-                        color: period === opt.value ? '#fff' : 'var(--color-text)',
+                        background: period === opt.value ? 'var(--color-primary-solid)' : 'transparent',
+                        color: period === opt.value ? 'var(--color-on-primary)' : 'var(--color-text)',
                       }}
                     >
                       {opt.label}
@@ -198,7 +206,7 @@ export default function Expenses() {
                     formatter={(value) => formatRupiah(Number(value))}
                     contentStyle={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: 10, color: 'var(--color-text)' }}
                   />
-                  <Bar dataKey="total" fill="#95B1EE" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="total" fill={chart.sales} radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </Card>
@@ -213,16 +221,19 @@ export default function Expenses() {
                     <PieChart>
                       <Pie data={donutData} dataKey="total" nameKey="category" innerRadius={38} outerRadius={58} paddingAngle={2}>
                         {donutData.map((_, i) => (
-                          <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
+                          <Cell key={i} fill={chart.donut[i % chart.donut.length]} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value) => formatRupiah(Number(value))} />
+                      <Tooltip
+                        formatter={(value) => formatRupiah(Number(value))}
+                        contentStyle={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: 10, color: 'var(--color-text)' }}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8, maxHeight: 90, overflowY: 'auto' }}>
                     {donutData.map((d, i) => (
                       <div key={d.category} style={{ display: 'grid', gridTemplateColumns: '10px 1fr auto', gap: 8, alignItems: 'center', fontSize: 12 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: DONUT_COLORS[i % DONUT_COLORS.length] }} />
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: chart.donut[i % chart.donut.length] }} />
                         <span>{d.category}</span>
                         <span style={{ color: 'var(--color-text-muted)' }}>{formatRupiah(d.total)}</span>
                       </div>
@@ -239,7 +250,7 @@ export default function Expenses() {
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>
+                  <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--color-divider)' }}>
                     <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Tanggal</th>
                     <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Deskripsi</th>
                     <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Kategori</th>
@@ -248,9 +259,9 @@ export default function Expenses() {
                 </thead>
                 <tbody>
                   {filteredExpenses.map((e) => (
-                    <tr key={e.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <tr key={e.id} style={{ borderBottom: '1px solid var(--color-divider)' }}>
                       <td style={{ padding: 14 }}>{new Date(e.expense_date).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })}</td>
-                      <td style={{ padding: 14, color: 'var(--color-primary)', fontWeight: 600 }}>{e.description}</td>
+                      <td style={{ padding: 14, color: 'var(--color-primary-text)', fontWeight: 600 }}>{e.description}</td>
                       <td style={{ padding: 14 }}>{e.category}</td>
                       <td style={{ padding: 14, fontWeight: 700 }}>{formatRupiah(e.amount)}</td>
                     </tr>

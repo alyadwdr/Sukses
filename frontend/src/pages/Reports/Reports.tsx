@@ -10,6 +10,7 @@ import Card from '@/components/Card/Card'
 import PageTopBar from '@/components/PageTopBar/PageTopBar'
 import Loading from '@/components/Loading/Loading'
 import TimeFilterTabs from '@/components/TimeFilterTabs/TimeFilterTabs'
+import { useChartColors } from '@/lib/chartColors'
 
 function formatRupiah(value: number) {
   return `Rp${value.toLocaleString('id-ID')}`
@@ -43,6 +44,7 @@ export default function Reports() {
 
   const { data, loading } = useReportsData(timeFilter, appliedFrom, appliedTo)
   const { business } = useBusiness()
+  const chart = useChartColors()
 
   if (loading || !data) return <Loading />
 
@@ -232,7 +234,7 @@ export default function Reports() {
       <div style={{ display: 'flex', gap: 20, marginBottom: 20, flexWrap: 'wrap' }}>
         <Card style={{ boxShadow: 'var(--shadow-card)', flex: 1, minWidth: 260 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-            <IconBadge bg="rgba(149,177,238,0.2)" color="var(--color-primary)">
+            <IconBadge bg="var(--color-primary-tint)" color="var(--color-primary-tint-text)">
               <TrendingUp size={18} />
             </IconBadge>
             <h3 style={{ fontSize: 15 }}>Laporan Penjualan</h3>
@@ -256,12 +258,12 @@ export default function Reports() {
 
         <Card style={{ boxShadow: 'var(--shadow-card)', flex: 1, minWidth: 260 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-            <IconBadge bg="var(--color-accent)" color="var(--color-text)">
+            <IconBadge bg="var(--color-accent)" color="var(--color-on-accent)">
               <Coins size={18} />
             </IconBadge>
             <h3 style={{ fontSize: 15 }}>Laporan Laba</h3>
           </div>
-          <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-primary)', marginBottom: 16 }}>
+          <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-primary-text)', marginBottom: 16 }}>
             {formatRupiah(data.grossProfit)}
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -270,21 +272,29 @@ export default function Reports() {
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Modal Barang</span>
-            <span style={{ fontWeight: 600, color: '#c0392b' }}>-{formatRupiah(data.costOfGoods)}</span>
+            <span style={{ fontWeight: 600, color: 'var(--color-danger-text)' }}>-{formatRupiah(data.costOfGoods)}</span>
           </div>
         </Card>
 
-        <Card style={{ boxShadow: 'var(--shadow-card)', flex: 1, minWidth: 260, background: 'var(--color-text)' }}>
+        <Card
+          style={{
+            boxShadow: 'var(--shadow-card)',
+            flex: 1,
+            minWidth: 260,
+            background: 'var(--color-inverse-surface)',
+            borderColor: 'transparent',
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-            <IconBadge bg="rgba(255,255,255,0.15)" color="#fff">
+            <IconBadge bg="var(--color-on-inverse-tint)" color="var(--color-on-inverse)">
               <TrendingDown size={18} />
             </IconBadge>
-            <h3 style={{ fontSize: 15, color: '#fff' }}>Laporan Pengeluaran</h3>
+            <h3 style={{ fontSize: 15, color: 'var(--color-on-inverse)' }}>Laporan Pengeluaran</h3>
           </div>
-          <div style={{ fontSize: 26, fontWeight: 700, color: '#fff', marginBottom: 12 }}>
+          <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-on-inverse)', marginBottom: 12 }}>
             {formatRupiah(data.totalExpenses)}
           </div>
-          <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13 }}>
+          <p style={{ color: 'var(--color-on-inverse-muted)', fontSize: 13 }}>
             Total pengeluaran operasional untuk periode ini.
           </p>
         </Card>
@@ -301,7 +311,7 @@ export default function Reports() {
                 formatter={(value) => formatRupiah(Number(value))}
                 contentStyle={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: 10, color: 'var(--color-text)' }}
               />
-              <Bar dataKey="sales" fill="#95B1EE" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="sales" fill={chart.sales} radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -312,11 +322,11 @@ export default function Reports() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {data.bestSellers.map((item) => (
               <div key={item.name} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--color-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: 'var(--color-text)', flexShrink: 0 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--color-surface-muted)', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: 'var(--color-text)', flexShrink: 0 }}>
                   {item.name.charAt(0).toUpperCase()}
                 </div>
                 <span style={{ flex: 1, fontWeight: 600 }}>{item.name}</span>
-                <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 20, background: 'rgba(149,177,238,0.2)', color: 'var(--color-primary)' }}>
+                <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 20, background: 'var(--color-primary-tint)', color: 'var(--color-primary-tint-text)' }}>
                   {item.qty} terjual
                 </span>
               </div>

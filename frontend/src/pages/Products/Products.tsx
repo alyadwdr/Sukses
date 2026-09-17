@@ -91,8 +91,8 @@ export default function Products() {
               gap: 6,
               padding: '10px 20px',
               borderRadius: 24,
-              background: 'var(--color-primary)',
-              color: '#fff',
+              background: 'var(--color-primary-solid)',
+              color: 'var(--color-on-primary)',
               border: 'none',
               fontWeight: 600,
               cursor: 'pointer',
@@ -120,7 +120,7 @@ export default function Products() {
                 padding: '10px 12px 10px 38px',
                 borderRadius: 10,
                 border: '1px solid var(--color-border)',
-                background: 'var(--color-bg)',
+                background: 'var(--color-surface-muted)',
                 color: 'var(--color-text)',
               }}
             />
@@ -136,7 +136,7 @@ export default function Products() {
                 padding: '0 12px',
                 borderRadius: 10,
                 border: '1px solid var(--color-border)',
-                background: 'var(--color-bg)',
+                background: 'var(--color-surface-muted)',
                 color: 'var(--color-text)',
                 display: 'flex',
                 alignItems: 'center',
@@ -178,7 +178,7 @@ export default function Products() {
                       padding: '8px 10px',
                       borderRadius: 6,
                       border: 'none',
-                      background: viewMode === opt.value ? 'var(--color-bg)' : 'transparent',
+                      background: viewMode === opt.value ? 'var(--color-surface-muted)' : 'transparent',
                       color: 'var(--color-text)',
                       cursor: 'pointer',
                       fontSize: 13,
@@ -189,7 +189,7 @@ export default function Products() {
                       {opt.icon}
                       {opt.label}
                     </span>
-                    {viewMode === opt.value && <Check size={14} color="var(--color-primary)" />}
+                    {viewMode === opt.value && <Check size={14} color="var(--color-primary-text)" />}
                   </button>
                 ))}
               </div>
@@ -202,7 +202,7 @@ export default function Products() {
         ) : viewMode === 'list' ? (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>
+              <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--color-divider)' }}>
                 <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>No.</th>
                 <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Produk</th>
                 <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Varian</th>
@@ -216,7 +216,7 @@ export default function Products() {
             </thead>
             <tbody>
               {sortedProducts.map((p, i) => (
-                <tr key={p.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                <tr key={p.id} style={{ borderBottom: '1px solid var(--color-divider)' }}>
                   <td style={{ padding: 14, color: 'var(--color-text-muted)' }}>{i + 1}</td>
                   <td style={{ padding: 14, fontWeight: 600 }}>{p.name}</td>
                   <td style={{ padding: 14, color: 'var(--color-text-muted)' }}>{p.variant || '-'}</td>
@@ -232,21 +232,21 @@ export default function Products() {
                       <button
                         onClick={() => setHistoryProduct(p)}
                         aria-label="Riwayat harga"
-                        style={iconButtonStyle('rgba(149,177,238,0.15)', 'var(--color-primary)')}
+                        style={iconButtonStyle('var(--color-action-info-bg)', 'var(--color-action-info-text)')}
                       >
                         <Info size={14} />
                       </button>
                       <button
                         onClick={() => setEditingProduct(p)}
                         aria-label="Edit"
-                        style={iconButtonStyle('rgba(231,241,168,0.5)', '#7a8a2e')}
+                        style={iconButtonStyle('var(--color-action-edit-bg)', 'var(--color-action-edit-text)')}
                       >
                         <Pencil size={14} />
                       </button>
                       <button
                         onClick={() => setDeletingProduct(p)}
                         aria-label="Hapus"
-                        style={iconButtonStyle('rgba(231,76,60,0.12)', '#c0392b')}
+                        style={iconButtonStyle('var(--color-action-danger-bg)', 'var(--color-action-danger-text)')}
                       >
                         <Trash2 size={14} />
                       </button>
@@ -279,14 +279,14 @@ export default function Products() {
                   <button
                     onClick={() => setEditingProduct(p)}
                     aria-label="Edit"
-                    style={{ ...iconButtonStyle('rgba(231,241,168,0.6)', '#7a8a2e'), width: 24, height: 24 }}
+                    style={{ ...iconButtonStyle('var(--color-action-edit-bg)', 'var(--color-action-edit-text)'), width: 24, height: 24 }}
                   >
                     <Pencil size={11} />
                   </button>
                   <button
                     onClick={() => setDeletingProduct(p)}
                     aria-label="Hapus"
-                    style={{ ...iconButtonStyle('rgba(231,76,60,0.15)', '#c0392b'), width: 24, height: 24 }}
+                    style={{ ...iconButtonStyle('var(--color-action-danger-bg)', 'var(--color-action-danger-text)'), width: 24, height: 24 }}
                   >
                     <Trash2 size={11} />
                   </button>
@@ -296,8 +296,8 @@ export default function Products() {
                     width: sizeConfig[viewMode].avatar,
                     height: sizeConfig[viewMode].avatar,
                     borderRadius: 12,
-                    background: 'var(--color-primary)',
-                    color: '#fff',
+                    background: 'var(--color-primary-solid)',
+                    color: 'var(--color-on-primary)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',

@@ -54,10 +54,10 @@ export default function BusinessSelection() {
             boxShadow: 'var(--shadow-card)',
           }}
         >
-          <h1 style={{ fontSize: 32, color: 'var(--color-text)', marginBottom: 12, lineHeight: 1.2 }}>
+          <h1 style={{ fontSize: 32, color: 'var(--color-on-accent)', marginBottom: 12, lineHeight: 1.2 }}>
             Siap bekerja?
           </h1>
-          <p style={{ color: 'var(--color-text)', opacity: 0.8, fontSize: 15 }}>
+          <p style={{ color: 'var(--color-on-accent-muted)', fontSize: 15 }}>
             Pilih unit bisnis untuk membuka dashboard.
           </p>
         </div>
@@ -69,7 +69,7 @@ export default function BusinessSelection() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              background: 'var(--color-primary)',
+              background: 'var(--color-primary-solid)',
               borderRadius: 24,
               padding: 28,
               border: 'none',
@@ -84,17 +84,17 @@ export default function BusinessSelection() {
                   width: 48,
                   height: 48,
                   borderRadius: 12,
-                  background: 'rgba(255,255,255,0.25)',
+                  background: 'var(--color-on-inverse-tint)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <ShoppingBag size={22} color="#fff" />
+                <ShoppingBag size={22} color="var(--color-on-primary)" />
               </div>
               <div>
-                <div style={{ fontSize: 19, fontWeight: 600, color: '#fff' }}>Sembako & Plastik</div>
-                <div style={{ fontSize: 14, color: '#fff', opacity: 0.85 }}>
+                <div style={{ fontSize: 19, fontWeight: 600, color: 'var(--color-on-primary)' }}>Sembako & Plastik</div>
+                <div style={{ fontSize: 14, color: 'var(--color-on-primary)', opacity: 0.85 }}>
                   Kelola inventori, penjualan, dan laporan.
                 </div>
               </div>
@@ -104,14 +104,14 @@ export default function BusinessSelection() {
                 width: 40,
                 height: 40,
                 borderRadius: '50%',
-                background: '#fff',
+                background: 'var(--color-on-primary)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
               }}
             >
-              <ArrowRight size={18} color="var(--color-primary)" />
+              <ArrowRight size={18} color="var(--color-primary-solid)" />
             </div>
           </button>
 
@@ -131,7 +131,7 @@ export default function BusinessSelection() {
                   width: 48,
                   height: 48,
                   borderRadius: 12,
-                  background: 'var(--color-bg)',
+                  background: 'var(--color-surface-muted)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -152,7 +152,7 @@ export default function BusinessSelection() {
                 fontWeight: 600,
                 padding: '6px 12px',
                 borderRadius: 20,
-                background: 'var(--color-bg)',
+                background: 'var(--color-surface-muted)',
                 color: 'var(--color-text-muted)',
                 flexShrink: 0,
               }}

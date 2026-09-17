@@ -9,7 +9,7 @@ export default function AllTransactionsTable({ transactions }: Props) {
   return (
     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
       <thead>
-        <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>
+        <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--color-divider)' }}>
           <th style={{ padding: '10px 14px', fontSize: 12, letterSpacing: 0.5, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Tanggal</th>
           <th style={{ padding: '10px 14px', fontSize: 12, letterSpacing: 0.5, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>No. Struk</th>
           <th style={{ padding: '10px 14px', fontSize: 12, letterSpacing: 0.5, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Produk</th>
@@ -22,9 +22,9 @@ export default function AllTransactionsTable({ transactions }: Props) {
       <tbody>
         {transactions.map((trx) =>
           trx.transaction_items.map((item) => (
-            <tr key={item.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <tr key={item.id} style={{ borderBottom: '1px solid var(--color-divider)' }}>
               <td style={{ padding: 14 }}>{new Date(trx.created_at).toLocaleDateString('id-ID')}</td>
-              <td style={{ padding: 14, color: 'var(--color-primary)' }}>{trx.trx_number}</td>
+              <td style={{ padding: 14, color: 'var(--color-primary-text)' }}>{trx.trx_number}</td>
               <td style={{ padding: 14, fontWeight: 600 }}>{item.products.name}</td>
               <td style={{ padding: 14 }}>
                 <CategoryBadge category={item.products.category} />

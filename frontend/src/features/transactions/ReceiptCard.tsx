@@ -74,7 +74,7 @@ export default function ReceiptCard({ transaction, highlighted }: Props) {
       id={`receipt-${transaction.trx_number}`}
       style={{
         borderRadius: 20,
-        outline: showOutline ? '3px solid var(--color-primary)' : '3px solid transparent',
+        outline: showOutline ? '3px solid var(--color-primary-text)' : '3px solid transparent',
         outlineOffset: 2,
         transition: 'outline-color 1.2s ease',
       }}
@@ -104,7 +104,7 @@ export default function ReceiptCard({ transaction, highlighted }: Props) {
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'var(--color-primary)',
+                color: 'var(--color-primary-text)',
                 fontSize: 12,
                 fontWeight: 600,
                 cursor: 'pointer',

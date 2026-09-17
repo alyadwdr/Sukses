@@ -43,7 +43,7 @@ export default function PriceHistoryModal({ productId, productName, onClose }: {
       ) : (
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>
+            <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--color-divider)' }}>
               <th style={{ padding: '8px 10px', fontSize: 12, color: 'var(--color-text-muted)' }}>Tanggal</th>
               <th style={{ padding: '8px 10px', fontSize: 12, color: 'var(--color-text-muted)' }}>Harga Beli</th>
               <th style={{ padding: '8px 10px', fontSize: 12, color: 'var(--color-text-muted)' }}>Harga Jual</th>
@@ -51,7 +51,7 @@ export default function PriceHistoryModal({ productId, productName, onClose }: {
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+              <tr key={row.id} style={{ borderBottom: '1px solid var(--color-divider)' }}>
                 <td style={{ padding: '10px' }}>{new Date(row.changed_at).toLocaleDateString('id-ID')}</td>
                 <td style={{ padding: '10px' }}>
                   {formatRupiah(row.old_purchase_price)} → <strong>{formatRupiah(row.new_purchase_price)}</strong>

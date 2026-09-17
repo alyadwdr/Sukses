@@ -30,7 +30,7 @@ export default function SortControl({ field, direction, onFieldChange, onDirecti
             padding: '0 12px',
             borderRadius: 10,
             border: '1px solid var(--color-border)',
-            background: 'var(--color-bg)',
+            background: 'var(--color-surface-muted)',
             color: 'var(--color-text)',
             display: 'flex',
             alignItems: 'center',
@@ -73,7 +73,7 @@ export default function SortControl({ field, direction, onFieldChange, onDirecti
                   padding: '8px 10px',
                   borderRadius: 6,
                   border: 'none',
-                  background: field === opt.value ? 'var(--color-bg)' : 'transparent',
+                  background: field === opt.value ? 'var(--color-surface-muted)' : 'transparent',
                   color: 'var(--color-text)',
                   cursor: 'pointer',
                   fontSize: 13,
@@ -81,7 +81,7 @@ export default function SortControl({ field, direction, onFieldChange, onDirecti
                 }}
               >
                 {opt.label}
-                {field === opt.value && <Check size={14} color="var(--color-primary)" />}
+                {field === opt.value && <Check size={14} color="var(--color-primary-text)" />}
               </button>
             ))}
           </div>
@@ -97,7 +97,7 @@ export default function SortControl({ field, direction, onFieldChange, onDirecti
           padding: '0 10px',
           borderRadius: 10,
           border: '1px solid var(--color-border)',
-          background: 'var(--color-bg)',
+          background: 'var(--color-surface-muted)',
           color: 'var(--color-text)',
           display: 'flex',
           alignItems: 'center',

@@ -1,7 +1,7 @@
 import { useBusinessFilter } from '@/context/BusinessFilterContext'
 
 const options: { label: string; value: 'all' | 'plastik' | 'sembako'; color: string }[] = [
-  { label: 'Sembako & Plastik', value: 'all', color: 'var(--color-primary)' },
+  { label: 'Sembako & Plastik', value: 'all', color: 'var(--color-primary-text)' },
   { label: 'Plastik', value: 'plastik', color: 'var(--color-plastik)' },
   { label: 'Sembako', value: 'sembako', color: 'var(--color-sembako)' },
 ]
@@ -29,7 +29,7 @@ export default function BusinessFilterTabs() {
             border: 'none',
             cursor: 'pointer',
             background: filter === opt.value ? opt.color : 'transparent',
-            color: filter === opt.value ? '#fff' : 'var(--color-text)',
+            color: filter === opt.value ? 'var(--color-on-primary)' : 'var(--color-text)',
             fontWeight: filter === opt.value ? 600 : 400,
             fontSize: 13,
           }}

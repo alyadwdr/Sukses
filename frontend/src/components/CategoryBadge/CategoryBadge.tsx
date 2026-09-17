@@ -9,8 +9,8 @@ export default function CategoryBadge({ category }: { category: string }) {
         fontSize: 12,
         fontWeight: 600,
         textTransform: 'capitalize',
-        background: isPlastik ? 'var(--color-accent)' : 'rgba(149, 177, 238, 0.25)',
-        color: isPlastik ? 'var(--color-text)' : 'var(--color-primary)',
+        background: isPlastik ? 'var(--color-badge-plastik-bg)' : 'var(--color-badge-sembako-bg)',
+        color: isPlastik ? 'var(--color-badge-plastik-text)' : 'var(--color-badge-sembako-text)',
       }}
     >
       {category}

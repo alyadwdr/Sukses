@@ -1,13 +1,62 @@
 :root {
   --color-primary: #95B1EE;
-  --color-bg: #FFFDF5;
-  --color-card: #FFFFFF;
   --color-accent: #E7F1A8;
-  --color-text: #364C84;
-  --color-text-muted: #8b95ad;
-  --color-border: rgba(54, 76, 132, 0.12);
   --color-sembako: #6D89C4;
   --color-plastik: #7C9A5E;
+
+  --color-bg: #FFFDF5;
+  --color-card: #FFFFFF;
+  --color-surface-muted: #FFFDF5;
+
+  --color-text: #364C84;
+  --color-text-muted: #6B7590;
+
+  --color-border: rgba(54, 76, 132, 0.12);
+  --color-divider: rgba(54, 76, 132, 0.14);
+
+  --color-primary-solid: #5674BB;
+  --color-on-primary: #FFFFFF;
+  --color-primary-text: #4A639F;
+  --color-primary-tint: rgba(149, 177, 238, 0.18);
+  --color-primary-tint-text: #4A639F;
+
+  --color-inverse-surface: #364C84;
+  --color-on-inverse: #FFFFFF;
+  --color-on-inverse-muted: rgba(255, 255, 255, 0.72);
+  --color-on-inverse-tint: rgba(255, 255, 255, 0.15);
+  --color-accent-on-inverse: #E7F1A8;
+
+  --color-on-accent: #364C84;
+  --color-on-accent-muted: #5C6A3C;
+  --color-accent-border: rgba(54, 76, 132, 0.18);
+  --color-accent-control: #FFFFFF;
+  --color-accent-control-text: #364C84;
+  --color-accent-tint: rgba(255, 255, 255, 0.5);
+
+  --color-badge-sembako-bg: rgba(149, 177, 238, 0.25);
+  --color-badge-sembako-text: #35507F;
+  --color-badge-plastik-bg: #E7F1A8;
+  --color-badge-plastik-text: #4A5722;
+
+  --color-action-info-bg: rgba(149, 177, 238, 0.18);
+  --color-action-info-text: #4A639F;
+  --color-action-edit-bg: rgba(231, 241, 168, 0.55);
+  --color-action-edit-text: #6B7A25;
+  --color-action-danger-bg: rgba(231, 76, 60, 0.12);
+  --color-action-danger-text: #c0392b;
+
+  --color-danger: #C93727;
+  --color-danger-text: #B02E1D;
+  --color-danger-bg: #fde2e2;
+  --color-danger-border: #f5b7b1;
+  --color-on-danger: #FFFFFF;
+  --color-success: #237D48;
+  --color-success-text: #197544;
+  --color-success-bg: #e2f5e2;
+  --color-warning-text: #8A6508;
+  --color-warning-bg: #fff8e1;
+  --color-warning-border: #ffe082;
+
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -17,15 +66,64 @@
 }
 
 [data-theme='dark'] {
-  --color-bg: #1C1C1E;
-  --color-card: #262626;
   --color-primary: #6E8AC4;
-  --color-accent: #79915F;
-  --color-text: #E8E8E8;
-  --color-text-muted: #9A9A9A;
-  --color-border: rgba(255, 255, 255, 0.09);
+  --color-accent: #33402A;
   --color-sembako: #6E8AC4;
   --color-plastik: #79915F;
+
+  --color-bg: #1C1C1E;
+  --color-card: #262626;
+  --color-surface-muted: #303034;
+
+  --color-text: #EDEDEF;
+  --color-text-muted: #ADB3C0;
+
+  --color-border: rgba(255, 255, 255, 0.12);
+  --color-divider: rgba(255, 255, 255, 0.22);
+
+  --color-primary-solid: #4E6BAC;
+  --color-on-primary: #FFFFFF;
+  --color-primary-text: #A9C2F0;
+  --color-primary-tint: rgba(149, 177, 238, 0.16);
+  --color-primary-tint-text: #A9C2F0;
+
+  --color-inverse-surface: #253558;
+  --color-on-inverse: #F2F5FD;
+  --color-on-inverse-muted: rgba(242, 245, 253, 0.72);
+  --color-on-inverse-tint: rgba(255, 255, 255, 0.14);
+  --color-accent-on-inverse: #CFE0A4;
+
+  --color-on-accent: #E4EFC9;
+  --color-on-accent-muted: #B4C596;
+  --color-accent-border: rgba(228, 239, 201, 0.22);
+  --color-accent-control: #3D4A31;
+  --color-accent-control-text: #E4EFC9;
+  --color-accent-tint: rgba(228, 239, 201, 0.16);
+
+  --color-badge-sembako-bg: #AFC6F0;
+  --color-badge-sembako-text: #1B2540;
+  --color-badge-plastik-bg: #CBD98C;
+  --color-badge-plastik-text: #22290D;
+
+  --color-action-info-bg: #2E3C5A;
+  --color-action-info-text: #A9C2F0;
+  --color-action-edit-bg: #3A4326;
+  --color-action-edit-text: #C8D88F;
+  --color-action-danger-bg: #4A2A26;
+  --color-action-danger-text: #E99086;
+
+  --color-danger: #B8433A;
+  --color-danger-text: #E99086;
+  --color-danger-bg: #3A2320;
+  --color-danger-border: #6B3630;
+  --color-on-danger: #FFFFFF;
+  --color-success: #2E7D4F;
+  --color-success-text: #7FCF9C;
+  --color-success-bg: #1F3327;
+  --color-warning-text: #E0B65C;
+  --color-warning-bg: #332B18;
+  --color-warning-border: #5C4A22;
+
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
@@ -58,4 +156,10 @@ input[type='date'] {
 input[type='date']::-webkit-calendar-picker-indicator {
   cursor: pointer;
   opacity: 0.6;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-muted);
+  opacity: 1;
 }

@@ -12,7 +12,7 @@ const inputStyle = {
   padding: '12px 14px',
   borderRadius: 10,
   border: '1px solid var(--color-border)',
-  background: 'var(--color-bg)',
+  background: 'var(--color-surface-muted)',
   color: 'var(--color-text)',
   fontFamily: 'var(--font-body)',
   fontSize: 14,
@@ -69,7 +69,7 @@ export default function Settings() {
       <Card
         style={{
           boxShadow: 'var(--shadow-card)',
-          background: 'var(--color-text)',
+          background: 'var(--color-inverse-surface)',
           marginBottom: 20,
           display: 'flex',
           alignItems: 'center',
@@ -84,8 +84,8 @@ export default function Settings() {
               width: 56,
               height: 56,
               borderRadius: '50%',
-              background: 'var(--color-accent)',
-              color: 'var(--color-text)',
+              background: 'var(--color-accent-on-inverse)',
+              color: 'var(--color-inverse-surface)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -98,22 +98,22 @@ export default function Settings() {
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>{business?.name ?? 'Sukses'}</span>
+              <span style={{ color: 'var(--color-on-inverse)', fontWeight: 700, fontSize: 16 }}>{business?.name ?? 'Sukses'}</span>
               <span
                 style={{
                   fontSize: 10,
                   fontWeight: 700,
                   padding: '2px 8px',
                   borderRadius: 10,
-                  background: 'rgba(255,255,255,0.15)',
-                  color: '#fff',
+                  background: 'var(--color-on-inverse-tint)',
+                  color: 'var(--color-on-inverse)',
                   letterSpacing: 0.5,
                 }}
               >
                 PEMILIK
               </span>
             </div>
-            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>{email}</div>
+            <div style={{ color: 'var(--color-on-inverse-muted)', fontSize: 13 }}>{email}</div>
           </div>
         </div>
 
@@ -123,7 +123,7 @@ export default function Settings() {
               display: 'inline-flex',
               padding: 3,
               borderRadius: 20,
-              background: 'rgba(255,255,255,0.1)',
+              background: 'var(--color-on-inverse-tint)',
             }}
           >
             <button
@@ -134,8 +134,8 @@ export default function Settings() {
                 height: 32,
                 borderRadius: '50%',
                 border: 'none',
-                background: theme === 'light' ? '#fff' : 'transparent',
-                color: theme === 'light' ? 'var(--color-text)' : 'rgba(255,255,255,0.6)',
+                background: theme === 'light' ? 'var(--color-on-inverse)' : 'transparent',
+                color: theme === 'light' ? 'var(--color-inverse-surface)' : 'var(--color-on-inverse-muted)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -152,8 +152,8 @@ export default function Settings() {
                 height: 32,
                 borderRadius: '50%',
                 border: 'none',
-                background: theme === 'dark' ? '#fff' : 'transparent',
-                color: theme === 'dark' ? 'var(--color-text)' : 'rgba(255,255,255,0.6)',
+                background: theme === 'dark' ? 'var(--color-on-inverse)' : 'transparent',
+                color: theme === 'dark' ? 'var(--color-inverse-surface)' : 'var(--color-on-inverse-muted)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -173,8 +173,8 @@ export default function Settings() {
               padding: '10px 22px',
               borderRadius: 20,
               border: 'none',
-              background: '#e74c3c',
-              color: '#fff',
+              background: 'var(--color-danger)',
+              color: 'var(--color-on-danger)',
               fontWeight: 700,
               cursor: 'pointer',
             }}
@@ -186,7 +186,7 @@ export default function Settings() {
 
       <Card style={{ boxShadow: 'var(--shadow-card)', flex: 1, display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
-          <Store size={20} color="var(--color-primary)" />
+          <Store size={20} color="var(--color-primary-text)" />
           <h3 style={{ fontSize: 17 }}>Profil Bisnis & Laporan</h3>
         </div>
 
@@ -217,8 +217,8 @@ export default function Settings() {
                 padding: '12px 32px',
                 borderRadius: 12,
                 border: 'none',
-                background: saved ? '#27ae60' : 'var(--color-primary)',
-                color: '#fff',
+                background: saved ? 'var(--color-success)' : 'var(--color-primary-solid)',
+                color: 'var(--color-on-primary)',
                 fontWeight: 700,
                 cursor: 'pointer',
               }}
