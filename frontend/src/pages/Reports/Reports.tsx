@@ -11,6 +11,7 @@ import PageTopBar from '@/components/PageTopBar/PageTopBar'
 import Loading from '@/components/Loading/Loading'
 import TimeFilterTabs from '@/components/TimeFilterTabs/TimeFilterTabs'
 import { useChartColors } from '@/lib/chartColors'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 function formatRupiah(value: number) {
   return `Rp${value.toLocaleString('id-ID')}`
@@ -45,6 +46,7 @@ export default function Reports() {
   const { data, loading } = useReportsData(timeFilter, appliedFrom, appliedTo)
   const { business } = useBusiness()
   const chart = useChartColors()
+  const isMobile = useIsMobile()
 
   if (loading || !data) return <Loading />
 
@@ -188,6 +190,108 @@ export default function Reports() {
     XLSX.utils.book_append_sheet(wb, expSheet, 'Pengeluaran')
     XLSX.utils.book_append_sheet(wb, summarySheet, 'Ringkasan')
     XLSX.writeFile(wb, `laporan-${new Date().toISOString().split('T')[0]}.xlsx`)
+  }
+
+  if (isMobile) {
+    return (
+      <div>
+        <PageTopBar title="Laporan" showFilter={false} />
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+          <TimeFilterTabs
+            value={timeFilter}
+            onChange={setTimeFilter}
+            customFrom={customFrom}
+            customTo={customTo}
+            onCustomFromChange={setCustomFrom}
+            onCustomToChange={setCustomTo}
+            onApplyCustom={handleApplyCustom}
+          />
+          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+            <button
+              onClick={handleExportPDF}
+              aria-label="Unduh PDF"
+              style={{
+                width: 38, height: 38, borderRadius: '50%', border: '1px solid var(--color-border)',
+                background: 'var(--color-card)', color: 'var(--color-text)', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <FileText size={16} />
+            </button>
+            <button
+              onClick={handleExportExcel}
+              aria-label="Unduh Excel"
+              style={{
+                width: 38, height: 38, borderRadius: '50%', border: '1px solid var(--color-border)',
+                background: 'var(--color-card)', color: 'var(--color-text)', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <FileSpreadsheet size={16} />
+            </button>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+          <div style={{ flex: 1, background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: 14, padding: 14 }}>
+            <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 6 }}>Penjualan</div>
+            <div style={{ fontSize: 17, fontWeight: 700 }}>{formatRupiah(data.totalSales)}</div>
+          </div>
+          <div style={{ flex: 1, background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: 14, padding: 14 }}>
+            <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 6 }}>Pengeluaran</div>
+            <div style={{ fontSize: 17, fontWeight: 700 }}>{formatRupiah(data.totalExpenses)}</div>
+          </div>
+        </div>
+
+        <div style={{ background: 'var(--color-accent)', border: '1px solid var(--color-accent-border)', borderRadius: 16, padding: 20, marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: 'var(--color-on-accent-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Laba Bersih</div>
+            <Coins size={18} color="var(--color-on-accent)" />
+          </div>
+          <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-on-accent)', marginBottom: 14 }}>{formatRupiah(data.grossProfit)}</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--color-on-accent-muted)' }}>
+            <span>Item terjual</span>
+            <span style={{ fontWeight: 700, color: 'var(--color-on-accent)' }}>{data.totalItemsSold} item</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--color-on-accent-muted)' }}>
+            <span>Rata-rata</span>
+            <span style={{ fontWeight: 700, color: 'var(--color-on-accent)' }}>{formatRupiah(data.avgTransaction)}</span>
+          </div>
+        </div>
+
+        <Card style={{ boxShadow: 'var(--shadow-card)', marginBottom: 20 }}>
+          <h3 style={{ fontSize: 15, marginBottom: 14 }}>Tren Pendapatan</h3>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={data.chartData}>
+              <XAxis dataKey="label" stroke="var(--color-text-muted)" fontSize={10} />
+              <YAxis stroke="var(--color-text-muted)" fontSize={10} width={44} tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)}rb` : String(v))} />
+              <Tooltip
+                formatter={(value) => formatRupiah(Number(value))}
+                contentStyle={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: 10, color: 'var(--color-text)' }}
+              />
+              <Bar dataKey="sales" fill={chart.sales} radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+
+        <Card style={{ boxShadow: 'var(--shadow-card)' }}>
+          <h3 style={{ fontSize: 15, marginBottom: 14 }}>Produk Terlaris</h3>
+          {data.bestSellers.length === 0 && <p style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>Belum ada penjualan</p>}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {data.bestSellers.map((item, i) => (
+              <div key={item.name} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--color-primary-tint)', color: 'var(--color-primary-tint-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 12, flexShrink: 0 }}>
+                  {i + 1}
+                </div>
+                <span style={{ flex: 1, fontWeight: 600, fontSize: 14 }}>{item.name}</span>
+                <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{item.qty} terjual</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    )
   }
 
   return (

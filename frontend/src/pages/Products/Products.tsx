@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Plus, Search, List, Grid2x2, LayoutGrid, ChevronDown, Pencil, Trash2, Info, Check } from 'lucide-react'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useProducts } from '@/features/products/useProducts'
 import AddProductForm from '@/features/products/AddProductForm'
 import EditProductForm from '@/features/products/EditProductForm'
@@ -9,6 +10,7 @@ import Modal from '@/components/Modal/Modal'
 import ConfirmModal from '@/components/ConfirmModal/ConfirmModal'
 import CategoryBadge from '@/components/CategoryBadge/CategoryBadge'
 import PageTopBar from '@/components/PageTopBar/PageTopBar'
+import BusinessFilterTabs from '@/components/BusinessFilterTabs/BusinessFilterTabs'
 import Loading from '@/components/Loading/Loading'
 import SortControl, { type SortField, type SortDirection } from '@/components/SortControl/SortControl'
 import { supabase } from '@/lib/supabase'
@@ -55,6 +57,8 @@ export default function Products() {
   const [viewMenuOpen, setViewMenuOpen] = useState(false)
   const [sortField, setSortField] = useState<SortField>('name')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const isMobile = useIsMobile()
 
   const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase())
@@ -76,6 +80,206 @@ export default function Products() {
     await supabase.from('products').delete().eq('id', deletingProduct.id)
     setDeletingProduct(null)
     refetch()
+  }
+
+  if (isMobile) {
+    return (
+      <div>
+        <PageTopBar title="Produk" onMobileAdd={() => setShowAddForm(true)} />
+
+        <div style={{ marginBottom: 16 }}>
+          <BusinessFilterTabs />
+        </div>
+
+        <div style={{ position: 'relative', marginBottom: 16 }}>
+          <Search size={16} color="var(--color-text-muted)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
+          <input
+            placeholder="Cari produk..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '12px 14px 12px 40px',
+              borderRadius: 12,
+              border: '1px solid var(--color-border)',
+              background: 'var(--color-card)',
+              color: 'var(--color-text)',
+            }}
+          />
+        </div>
+
+        {loading ? (
+          <Loading />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {sortedProducts.map((p) => {
+              const expanded = expandedId === p.id
+              return (
+                <div key={p.id} style={{ borderRadius: 16, border: '1px solid var(--color-border)', background: 'var(--color-card)', overflow: 'hidden' }}>
+                  <button
+                    onClick={() => setExpandedId(expanded ? null : p.id)}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: 14,
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      fontFamily: 'var(--font-body)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 12,
+                        background: 'var(--color-primary-solid)',
+                        color: 'var(--color-on-primary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 700,
+                        flexShrink: 0,
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {p.image_url ? (
+                        <img src={p.image_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        p.name.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontWeight: 700, fontSize: 15 }}>{p.name}</span>
+                        <CategoryBadge category={p.category} />
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+                        {p.variant || '—'} · {p.stock} {p.unit}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontWeight: 700 }}>Rp{p.selling_price.toLocaleString('id-ID')}</div>
+                      <ChevronDown size={16} color="var(--color-text-muted)" style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                    </div>
+                  </button>
+
+                  {expanded && (
+                    <div style={{ display: 'flex', gap: 8, padding: '0 14px 14px' }}>
+                      <button
+                        onClick={() => setHistoryProduct(p)}
+                        style={{
+                          flex: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          padding: '10px 0',
+                          borderRadius: 10,
+                          border: 'none',
+                          background: 'var(--color-action-info-bg)',
+                          color: 'var(--color-action-info-text)',
+                          fontWeight: 600,
+                          fontSize: 13,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Info size={14} /> Detail
+                      </button>
+                      <button
+                        onClick={() => setEditingProduct(p)}
+                        style={{
+                          flex: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          padding: '10px 0',
+                          borderRadius: 10,
+                          border: 'none',
+                          background: 'var(--color-action-edit-bg)',
+                          color: 'var(--color-action-edit-text)',
+                          fontWeight: 600,
+                          fontSize: 13,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Pencil size={14} /> Ubah
+                      </button>
+                      <button
+                        onClick={() => setDeletingProduct(p)}
+                        style={{
+                          flex: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          padding: '10px 0',
+                          borderRadius: 10,
+                          border: 'none',
+                          background: 'var(--color-action-danger-bg)',
+                          color: 'var(--color-action-danger-text)',
+                          fontWeight: 600,
+                          fontSize: 13,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Trash2 size={14} /> Hapus
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {showAddForm && (
+          <Modal onClose={() => setShowAddForm(false)}>
+            <AddProductForm
+              onSuccess={() => {
+                setShowAddForm(false)
+                refetch()
+              }}
+              onCancel={() => setShowAddForm(false)}
+            />
+          </Modal>
+        )}
+
+        {editingProduct && (
+          <Modal onClose={() => setEditingProduct(null)}>
+            <EditProductForm
+              product={editingProduct}
+              onSuccess={() => {
+                setEditingProduct(null)
+                refetch()
+              }}
+              onCancel={() => setEditingProduct(null)}
+            />
+          </Modal>
+        )}
+
+        {deletingProduct && (
+          <ConfirmModal
+            title="Hapus Produk"
+            description={`Yakin ingin menghapus "${deletingProduct.name}"? Tindakan ini tidak bisa dibatalkan.`}
+            onConfirm={handleDelete}
+            onCancel={() => setDeletingProduct(null)}
+          />
+        )}
+
+        {historyProduct && (
+          <PriceHistoryModal
+            productId={historyProduct.id}
+            productName={historyProduct.name}
+            onClose={() => setHistoryProduct(null)}
+          />
+        )}
+      </div>
+    )
   }
 
   return (

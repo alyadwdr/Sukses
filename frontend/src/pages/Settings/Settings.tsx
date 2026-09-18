@@ -6,6 +6,8 @@ import { supabase } from '@/lib/supabase'
 import { useNavigate } from 'react-router-dom'
 import { Store, Moon, Sun, LogOut } from 'lucide-react'
 import Card from '@/components/Card/Card'
+import PageTopBar from '@/components/PageTopBar/PageTopBar'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 const inputStyle = {
   width: '100%',
@@ -36,6 +38,7 @@ export default function Settings() {
   const [phone, setPhone] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState('')
 
   useEffect(() => {
     if (business) {
@@ -53,18 +56,26 @@ export default function Settings() {
   async function handleSaveBusiness(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    await updateBusiness({ name, address: address || null, phone: phone || null } as any)
-    setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    setSaveError('')
+    try {
+      await updateBusiness({ name, address: address || null, phone: phone || null } as any)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch (err: any) {
+      console.error('Gagal menyimpan profil bisnis:', err)
+      setSaveError(err?.message || 'Gagal menyimpan. Coba lagi.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const email = session?.user.email ?? ''
   const initials = email.slice(0, 2).toUpperCase()
+  const isMobile = useIsMobile()
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 48px)' }}>
-      <h1 style={{ color: 'var(--color-text)', marginBottom: 20 }}>Pengaturan</h1>
+    <div style={{ display: 'flex', flexDirection: 'column', height: isMobile ? 'auto' : 'calc(100vh - 48px)' }}>
+      {isMobile ? <PageTopBar title="Pengaturan" /> : <h1 style={{ color: 'var(--color-text)', marginBottom: 20 }}>Pengaturan</h1>}
 
       <Card
         style={{
@@ -72,9 +83,10 @@ export default function Settings() {
           background: 'var(--color-inverse-surface)',
           marginBottom: 20,
           display: 'flex',
-          alignItems: 'center',
+          flexDirection: isMobile ? 'column' : 'row',
+          alignItems: isMobile ? 'stretch' : 'center',
           justifyContent: 'space-between',
-          gap: 20,
+          gap: isMobile ? 16 : 20,
           flexWrap: 'wrap',
         }}
       >
@@ -117,7 +129,7 @@ export default function Settings() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'space-between' : 'flex-start', gap: 16 }}>
           <div
             style={{
               display: 'inline-flex',
@@ -184,7 +196,7 @@ export default function Settings() {
         </div>
       </Card>
 
-      <Card style={{ boxShadow: 'var(--shadow-card)', flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <Card style={{ boxShadow: 'var(--shadow-card)', flex: isMobile ? 'none' : 1, display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
           <Store size={20} color="var(--color-primary-text)" />
           <h3 style={{ fontSize: 17 }}>Profil Bisnis & Laporan</h3>
@@ -208,6 +220,12 @@ export default function Settings() {
           </div>
 
           <div style={{ flex: 1 }} />
+
+          {saveError && (
+            <div style={{ fontSize: 13, color: 'var(--color-danger-text)', marginBottom: 12, fontWeight: 600 }}>
+              {saveError}
+            </div>
+          )}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button

@@ -3,6 +3,10 @@ import { Plus, Search, List, Grid2x2, LayoutGrid, ChevronDown } from 'lucide-rea
 import { useProducts } from '@/features/products/useProducts'
 import { useStockMovements } from '@/features/inventory/useStockMovements'
 import StockInForm from '@/features/inventory/StockInForm'
+import MobileStockInForm from '@/features/inventory/MobileStockInForm'
+import Modal from '@/components/Modal/Modal'
+import BusinessFilterTabs from '@/components/BusinessFilterTabs/BusinessFilterTabs'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import Card from '@/components/Card/Card'
 import PageTopBar from '@/components/PageTopBar/PageTopBar'
 import CategoryBadge from '@/components/CategoryBadge/CategoryBadge'
@@ -171,6 +175,8 @@ export default function Inventory() {
   const [appliedTo, setAppliedTo] = useState('')
   const [sortField, setSortField] = useState<SortField>('name')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const [historyOrStock, setHistoryOrStock] = useState<'stock' | 'history'>('stock')
+  const isMobile = useIsMobile()
 
   const touchStartX = useRef<number | null>(null)
   const lastWheelTime = useRef(0)
@@ -257,6 +263,124 @@ export default function Inventory() {
   function handleApplyCustom() {
     setAppliedFrom(customFrom)
     setAppliedTo(customTo)
+  }
+
+  if (isMobile) {
+    return (
+      <div>
+        <PageTopBar title="Stok" onMobileAdd={() => setShowForm(true)} />
+
+        <div style={{ marginBottom: 16 }}>
+          <BusinessFilterTabs />
+        </div>
+
+        <div style={{ display: 'flex', padding: 4, borderRadius: 999, background: 'var(--color-surface-muted)', border: '1px solid var(--color-border)', marginBottom: 16 }}>
+          {(['stock', 'history'] as const).map((v) => (
+            <button
+              key={v}
+              onClick={() => setHistoryOrStock(v)}
+              style={{
+                flex: 1,
+                padding: '9px 0',
+                borderRadius: 999,
+                border: 'none',
+                cursor: 'pointer',
+                background: historyOrStock === v ? 'var(--color-card)' : 'transparent',
+                color: historyOrStock === v ? 'var(--color-text)' : 'var(--color-text-muted)',
+                fontWeight: historyOrStock === v ? 700 : 400,
+                fontSize: 13,
+                boxShadow: historyOrStock === v ? 'var(--shadow-card)' : 'none',
+              }}
+            >
+              {v === 'stock' ? 'Stok saat ini' : 'Riwayat'}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ position: 'relative', marginBottom: 16 }}>
+          <Search size={16} color="var(--color-text-muted)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
+          <input
+            placeholder="Cari stok..."
+            value={historyOrStock === 'stock' ? stockSearch : historySearch}
+            onChange={(e) => (historyOrStock === 'stock' ? setStockSearch(e.target.value) : setHistorySearch(e.target.value))}
+            style={{ ...searchInputStyle, background: 'var(--color-card)' }}
+          />
+        </div>
+
+        {loading ? (
+          <Loading />
+        ) : historyOrStock === 'stock' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+            {sortedProducts.map((p) => (
+              <div
+                key={p.id}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: 14,
+                  borderRadius: 14,
+                  border: '1px solid var(--color-border)',
+                  background: 'var(--color-card)',
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>
+                    {p.name}
+                    {p.variant ? ` · ${p.variant}` : ''}
+                  </div>
+                  <div style={{ fontSize: 12 }}>
+                    <span style={{ color: p.stock <= p.min_stock ? 'var(--color-danger-text)' : 'var(--color-success-text)' }}>
+                      {p.stock <= p.min_stock ? 'Menipis' : 'Aman'}
+                    </span>
+                    <span style={{ color: 'var(--color-text-muted)' }}> · diperbarui {relativeUpdateLabel(lastUpdateMap[p.id]).toLowerCase()}</span>
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontWeight: 700, fontSize: 16 }}>{p.stock}</div>
+                  <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{p.unit}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+            {filteredMovements.map((m) => (
+              <div
+                key={m.id}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: 14,
+                  borderRadius: 14,
+                  border: '1px solid var(--color-border)',
+                  background: 'var(--color-card)',
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{m.products.name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+                    {new Date(m.created_at).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })} ·{' '}
+                    {m.reason === 'stock_in' ? 'Stok Masuk' : m.reason === 'sale' ? 'Penjualan' : 'Penyesuaian'}
+                  </div>
+                </div>
+                <span style={{ fontWeight: 700, color: m.change > 0 ? 'var(--color-success-text)' : 'var(--color-danger-text)' }}>
+                  {m.change > 0 ? '+' : ''}
+                  {m.change} {m.products.unit}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {showForm && (
+          <Modal onClose={() => setShowForm(false)}>
+            <MobileStockInForm products={products} onSuccess={handleStockInSuccess} onCancel={() => setShowForm(false)} />
+          </Modal>
+        )}
+      </div>
+    )
   }
 
   return (

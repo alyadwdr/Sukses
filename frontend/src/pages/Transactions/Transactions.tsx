@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Plus, Search } from 'lucide-react'
+import { useIsMobile } from '@/hooks/useIsMobile'
+import BusinessFilterTabs from '@/components/BusinessFilterTabs/BusinessFilterTabs'
 import NewTransactionForm from '@/features/transactions/NewTransactionForm'
 import { useTransactions } from '@/features/transactions/useTransactions'
 import AllTransactionsTable from '@/features/transactions/AllTransactionsTable'
@@ -23,6 +25,8 @@ const searchInputStyle = {
 }
 
 export default function Transactions() {
+  const navigate = useNavigate()
+  const isMobile = useIsMobile()
   const [searchParams] = useSearchParams()
   const highlightTrx = searchParams.get('highlight')
 
@@ -71,6 +75,81 @@ export default function Transactions() {
   function handleApplyCustom() {
     setAppliedFrom(customFrom)
     setAppliedTo(customTo)
+  }
+
+  if (isMobile) {
+    const now = new Date()
+    const monthTransactions = transactions.filter((trx) => {
+      const d = new Date(trx.created_at)
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+    })
+    const monthTotal = monthTransactions.reduce((sum, trx) => sum + trx.total, 0)
+
+    return (
+      <div>
+        <PageTopBar title="Transaksi" onMobileAdd={() => navigate('/dashboard/transactions/new')} />
+
+        <div style={{ marginBottom: 16 }}>
+          <BusinessFilterTabs />
+        </div>
+
+        <div
+          style={{
+            background: 'var(--color-inverse-surface)',
+            borderRadius: 16,
+            padding: 20,
+            marginBottom: 20,
+          }}
+        >
+          <div style={{ fontSize: 13, color: 'var(--color-on-inverse-muted)', marginBottom: 6 }}>Total Transaksi Bulan Ini</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+            <span style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-on-inverse)' }}>Rp{monthTotal.toLocaleString('id-ID')}</span>
+            <span style={{ fontSize: 13, color: 'var(--color-accent-on-inverse)', fontWeight: 600 }}>{monthTransactions.length} transaksi</span>
+          </div>
+        </div>
+
+        <div style={{ position: 'relative', marginBottom: 16 }}>
+          <Search size={16} color="var(--color-text-muted)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
+          <input
+            placeholder="Cari no. struk / produk..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ ...searchInputStyle, background: 'var(--color-card)' }}
+          />
+        </div>
+
+        {loading ? (
+          <Loading />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+            {searchedTransactions.length === 0 && <p style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>Belum ada transaksi</p>}
+            {searchedTransactions.map((trx) => (
+              <div
+                key={trx.id}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: 14,
+                  borderRadius: 14,
+                  border: '1px solid var(--color-border)',
+                  background: 'var(--color-card)',
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{trx.trx_number}</div>
+                  <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+                    {new Date(trx.created_at).toLocaleDateString('id-ID')} · {trx.transaction_items.length} item ·{' '}
+                    {trx.payment_method === 'cash' ? 'Tunai' : trx.payment_method.toUpperCase()}
+                  </div>
+                </div>
+                <span style={{ fontWeight: 700 }}>Rp{trx.total.toLocaleString('id-ID')}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (

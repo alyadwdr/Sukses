@@ -17,6 +17,7 @@ import Expenses from '@/pages/Expenses/Expenses'
 import Income from '@/pages/Income/Income'
 import Reports from '@/pages/Reports/Reports'
 import Settings from '@/pages/Settings/Settings'
+import NewTransactionPage from '@/pages/NewTransaction/NewTransactionPage'
 
 export default function App() {
   return (
@@ -34,6 +35,14 @@ export default function App() {
                       element={
                         <ProtectedRoute>
                           <BusinessSelection />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/dashboard/transactions/new"
+                      element={
+                        <ProtectedRoute>
+                          <NewTransactionPage />
                         </ProtectedRoute>
                       }
                     />
