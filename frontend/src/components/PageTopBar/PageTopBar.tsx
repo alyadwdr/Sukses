@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react'
-import { Plus, Menu, Store } from 'lucide-react'
+import { Plus, Menu, Store, Moon, Sun } from 'lucide-react'
 import BusinessFilterTabs from '@/components/BusinessFilterTabs/BusinessFilterTabs'
 import NotificationBell from '@/components/NotificationBell/NotificationBell'
 import { useBusiness } from '@/context/BusinessContext'
 import { useMoreMenu } from '@/context/MoreMenuContext'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { useTheme } from '@/context/ThemeContext'
 
 interface PageTopBarProps {
   title: string
@@ -18,6 +19,7 @@ export default function PageTopBar({ title, action, showFilter = true, onMobileA
   const isMobile = useIsMobile()
   const { business } = useBusiness()
   const { openMore } = useMoreMenu()
+  const { theme, toggleTheme } = useTheme()
 
   if (isMobile) {
     return (
@@ -60,6 +62,24 @@ export default function PageTopBar({ title, action, showFilter = true, onMobileA
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             <NotificationBell />
+            <button
+              onClick={toggleTheme}
+              aria-label={theme === 'light' ? 'Mode gelap' : 'Mode terang'}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-card)',
+                color: 'var(--color-text)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              {theme === 'light' ? <Moon size={17} /> : <Sun size={17} />}
+            </button>
             {onMobileAdd ? (
               <button
                 onClick={onMobileAdd}

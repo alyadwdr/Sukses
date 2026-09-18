@@ -10,6 +10,8 @@ import PageTopBar from '@/components/PageTopBar/PageTopBar'
 import Loading from '@/components/Loading/Loading'
 import { useChartColors } from '@/lib/chartColors'
 import { jakartaDateString, jakartaDateOnly, addJakartaDays, startOfJakartaMonth, endOfJakartaMonth, startOfJakartaYear } from '@/lib/time'
+import { Receipt } from 'lucide-react'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 function formatRupiah(value: number) {
   return `Rp${value.toLocaleString('id-ID')}`
@@ -37,6 +39,7 @@ export default function Expenses() {
   const { expenses, loading, refetch } = useExpenses()
   const summary = useExpenseSummary(expenses)
   const chart = useChartColors()
+  const isMobile = useIsMobile()
   const [showForm, setShowForm] = useState(false)
   const [period, setPeriod] = useState<ChartPeriod>('7d')
   const [dateFrom, setDateFrom] = useState('')
@@ -99,6 +102,167 @@ export default function Expenses() {
   function handleFilter() {
     setAppliedFrom(dateFrom)
     setAppliedTo(dateTo)
+  }
+
+  const periodTotal = totalChartData.reduce((sum, d) => sum + d.total, 0)
+
+  const periodRangeLabel = useMemo(() => {
+    if (period === '1y') {
+      return String(jakartaDateOnly(new Date()).y)
+    }
+    if (period === '1m') {
+      return startOfJakartaMonth().toLocaleDateString('id-ID', { month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' })
+    }
+    const start = addJakartaDays(new Date(), -6)
+    const end = new Date()
+    const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()
+    const startLabel = sameMonth
+      ? start.toLocaleDateString('id-ID', { day: 'numeric', timeZone: 'Asia/Jakarta' })
+      : start.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', timeZone: 'Asia/Jakarta' })
+    const endLabel = end.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' })
+    return `${startLabel}–${endLabel}`
+  }, [period])
+
+  if (isMobile) {
+    return (
+      <div>
+        <PageTopBar title="Pengeluaran" onMobileAdd={() => setShowForm(true)} />
+
+        <div style={{ background: 'var(--color-inverse-surface)', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+          <div style={{ fontSize: 13, color: 'var(--color-on-inverse-muted)', marginBottom: 6 }}>Total Pengeluaran</div>
+          <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-on-inverse)', marginBottom: 6 }}>{formatRupiah(periodTotal)}</div>
+          <div style={{ fontSize: 12, color: 'var(--color-on-inverse-muted)' }}>Periode {periodRangeLabel}</div>
+        </div>
+
+        <div style={{ display: 'inline-flex', padding: 4, borderRadius: 999, background: 'var(--color-surface-muted)', border: '1px solid var(--color-border)', marginBottom: 20 }}>
+          {periodOptions.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setPeriod(opt.value)}
+              style={{
+                padding: '7px 16px',
+                borderRadius: 999,
+                border: 'none',
+                fontSize: 13,
+                cursor: 'pointer',
+                background: period === opt.value ? 'var(--color-primary-solid)' : 'transparent',
+                color: period === opt.value ? 'var(--color-on-primary)' : 'var(--color-text)',
+                fontWeight: period === opt.value ? 700 : 400,
+              }}
+            >
+              {opt.value === '7d' ? '7 Hari' : opt.value === '1m' ? '1 Bln' : '1 Thn'}
+            </button>
+          ))}
+        </div>
+
+        <Card style={{ boxShadow: 'var(--shadow-card)', marginBottom: 20 }}>
+          <h3 style={{ fontSize: 15, marginBottom: 14 }}>Per Kategori</h3>
+          {donutData.length === 0 ? (
+            <p style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>Belum ada data</p>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+              <ResponsiveContainer width={130} height={130}>
+                <PieChart>
+                  <Pie data={donutData} dataKey="total" nameKey="category" innerRadius={40} outerRadius={62} paddingAngle={2}>
+                    {donutData.map((_, i) => (
+                      <Cell key={i} fill={chart.donut[i % chart.donut.length]} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+                {donutData.map((d, i) => (
+                  <div key={d.category} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: chart.donut[i % chart.donut.length] }} />
+                      {d.category}
+                    </span>
+                    <span style={{ fontWeight: 700 }}>{formatRupiah(d.total)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </Card>
+
+        {loading ? (
+          <Loading />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+            {filteredExpenses.length === 0 && <p style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>Belum ada pengeluaran</p>}
+            {filteredExpenses.map((e) => (
+              <div
+                key={e.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: 14,
+                  borderRadius: 14,
+                  border: '1px solid var(--color-border)',
+                  background: 'var(--color-card)',
+                }}
+              >
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 12,
+                    background: 'var(--color-danger-bg)',
+                    color: 'var(--color-danger-text)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Receipt size={18} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{e.description}</div>
+                  <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+                    {e.category} · {new Date(e.expense_date).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })}
+                  </div>
+                </div>
+                <span style={{ fontWeight: 700, fontSize: 14, flexShrink: 0 }}>{formatRupiah(e.amount)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button
+          onClick={() => setShowForm(true)}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            padding: 16,
+            borderRadius: 14,
+            border: 'none',
+            background: 'var(--color-primary-solid)',
+            color: 'var(--color-on-primary)',
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          <Plus size={18} /> Tambah Pengeluaran
+        </button>
+
+        {showForm && (
+          <Modal onClose={() => setShowForm(false)}>
+            <AddExpenseForm
+              onSuccess={() => {
+                setShowForm(false)
+                refetch()
+              }}
+              onCancel={() => setShowForm(false)}
+            />
+          </Modal>
+        )}
+      </div>
+    )
   }
 
   return (
