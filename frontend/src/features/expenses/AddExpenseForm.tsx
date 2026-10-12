@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { jakartaDateString } from '@/lib/time'
+import type { Expense } from '@/types/expense'
 
 const categories = [
   'Belanja stok',
@@ -26,27 +27,32 @@ const inputStyle = {
 }
 
 interface AddExpenseFormProps {
+  expense?: Expense
   onSuccess: () => void
   onCancel: () => void
 }
 
-export default function AddExpenseForm({ onSuccess, onCancel }: AddExpenseFormProps) {
-  const [description, setDescription] = useState('')
-  const [category, setCategory] = useState(categories[0])
-  const [amount, setAmount] = useState('')
-  const [expenseDate, setExpenseDate] = useState(jakartaDateString())
+export default function AddExpenseForm({ expense, onSuccess, onCancel }: AddExpenseFormProps) {
+  const [description, setDescription] = useState(expense?.description ?? '')
+  const [category, setCategory] = useState(expense?.category ?? categories[0])
+  const [amount, setAmount] = useState(expense ? String(expense.amount) : '')
+  const [expenseDate, setExpenseDate] = useState(expense?.expense_date ?? jakartaDateString())
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
 
-    const { error } = await supabase.from('expenses').insert({
+    const payload = {
       description,
       category,
       amount: Number(amount),
       expense_date: expenseDate,
-    })
+    }
+
+    const { error } = expense
+      ? await supabase.from('expenses').update(payload).eq('id', expense.id)
+      : await supabase.from('expenses').insert(payload)
 
     setSaving(false)
     if (!error) onSuccess()
@@ -55,7 +61,7 @@ export default function AddExpenseForm({ onSuccess, onCancel }: AddExpenseFormPr
   return (
     <form onSubmit={handleSubmit}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h2 style={{ color: 'var(--color-text)' }}>Pengeluaran Baru</h2>
+        <h2 style={{ color: 'var(--color-text)' }}>{expense ? 'Edit Pengeluaran' : 'Pengeluaran Baru'}</h2>
         <button
           type="button"
           onClick={onCancel}
@@ -126,7 +132,7 @@ export default function AddExpenseForm({ onSuccess, onCancel }: AddExpenseFormPr
           marginTop: 20,
         }}
       >
-        {saving ? 'Menyimpan...' : 'Simpan'}
+        {saving ? 'Menyimpan...' : expense ? 'Simpan Perubahan' : 'Simpan'}
       </button>
     </form>
   )

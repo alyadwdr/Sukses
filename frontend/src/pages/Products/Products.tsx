@@ -3,7 +3,17 @@ import { Plus, Search, List, Grid2x2, LayoutGrid, ChevronDown, Pencil, Trash2, I
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useProducts } from '@/features/products/useProducts'
 import { useProductUnits } from '@/features/products/useProductUnits'
-import { allUnitsForProduct, stockBreakdown } from '@/lib/units'
+import { useUnitSelector } from '@/hooks/useUnitSelector'
+
+const unitSelectStyle = {
+  padding: '4px 8px',
+  borderRadius: 6,
+  border: '1px solid var(--color-border)',
+  background: 'var(--color-surface-muted)',
+  color: 'var(--color-text)',
+  fontFamily: 'var(--font-body)',
+  fontSize: 13,
+}
 import AddProductForm from '@/features/products/AddProductForm'
 import EditProductForm from '@/features/products/EditProductForm'
 import PriceHistoryModal from '@/features/products/PriceHistoryModal'
@@ -51,13 +61,21 @@ function iconButtonStyle(bg: string, color: string) {
 export default function Products() {
   const { products, loading, refetch } = useProducts()
   const { unitsByProduct } = useProductUnits()
+  const { unitsFor, selectedUnitFor, stockQtyFor, setUnit } = useUnitSelector(unitsByProduct)
 
-  function unitDisplay(p: Product): string {
-    const units = allUnitsForProduct(p, unitsByProduct(p.id))
-    if (units.length <= 1) return p.unit
-    return stockBreakdown(p.stock, units)
+  function SatuanCell({ p }: { p: Product }) {
+    const units = unitsFor(p)
+    if (units.length <= 1) return <>{p.unit}</>
+    return (
+      <select value={selectedUnitFor(p).unit_name} onChange={(e) => setUnit(p.id, e.target.value)} style={unitSelectStyle}>
+        {units.map((u) => (
+          <option key={u.unit_name} value={u.unit_name}>
+            {u.unit_name}
+          </option>
+        ))}
+      </select>
+    )
   }
-
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null)
@@ -168,7 +186,7 @@ export default function Products() {
                         <CategoryBadge category={p.category} />
                       </div>
                       <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
-                        {p.variant || '—'} · {unitDisplay(p)}
+                        {p.variant || '—'} · {p.stock} {p.unit}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -437,10 +455,12 @@ export default function Products() {
                   <td style={{ padding: 14 }}>
                     <CategoryBadge category={p.category} />
                   </td>
-                  <td style={{ padding: 14 }}>Rp{p.purchase_price.toLocaleString('id-ID')}</td>
-                  <td style={{ padding: 14 }}>Rp{p.selling_price.toLocaleString('id-ID')}</td>
-                  <td style={{ padding: 14 }}>{p.stock}</td>
-                  <td style={{ padding: 14 }}>{unitDisplay(p)}</td>
+                  <td style={{ padding: 14 }}>Rp{selectedUnitFor(p).purchase_price.toLocaleString('id-ID')}</td>
+                  <td style={{ padding: 14 }}>Rp{selectedUnitFor(p).selling_price.toLocaleString('id-ID')}</td>
+                  <td style={{ padding: 14 }}>{stockQtyFor(p)}</td>
+                  <td style={{ padding: 14 }}>
+                    <SatuanCell p={p} />
+                  </td>
                   <td style={{ padding: 14 }}>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button
@@ -532,10 +552,10 @@ export default function Products() {
                   <div style={{ fontSize: sizeConfig[viewMode].font - 2, color: 'var(--color-text-muted)' }}>{p.variant}</div>
                 )}
                 <div style={{ fontSize: sizeConfig[viewMode].font - 1, color: 'var(--color-text-muted)' }}>
-                  Rp{p.selling_price.toLocaleString('id-ID')}
+                  Rp{selectedUnitFor(p).selling_price.toLocaleString('id-ID')}
                 </div>
-                <div style={{ fontSize: sizeConfig[viewMode].font - 1, color: 'var(--color-text-muted)' }}>
-                  {unitDisplay(p)}
+                <div style={{ fontSize: sizeConfig[viewMode].font - 1, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                  {stockQtyFor(p)} <SatuanCell p={p} />
                 </div>
               </div>
             ))}

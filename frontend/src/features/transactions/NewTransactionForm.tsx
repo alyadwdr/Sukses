@@ -52,6 +52,7 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
   const [saveError, setSaveError] = useState('')
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [viewMenuOpen, setViewMenuOpen] = useState(false)
+  const [qtyInputs, setQtyInputs] = useState<Record<string, string>>({})
   const { refetch: refetchNotifications } = useNotifications()
   const { unitsByProduct } = useProductUnits()
 
@@ -110,6 +111,22 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
         return { ...item, quantity: Math.min(quantity, max) }
       })
     )
+  }
+
+  function handleQtyInputChange(productId: string, raw: string) {
+    setQtyInputs((prev) => ({ ...prev, [productId]: raw }))
+    const parsed = parseInt(raw, 10)
+    if (!isNaN(parsed) && parsed > 0) {
+      updateQuantity(productId, parsed)
+    }
+  }
+
+  function handleQtyInputBlur(productId: string) {
+    setQtyInputs((prev) => {
+      const next = { ...prev }
+      delete next[productId]
+      return next
+    })
   }
 
   function updateUnit(productId: string, unitName: string) {
@@ -409,7 +426,24 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
                     >
                       -
                     </button>
-                    <span style={{ fontSize: 13 }}>{item.quantity}</span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={qtyInputs[item.product.id] ?? String(item.quantity)}
+                      onChange={(e) => handleQtyInputChange(item.product.id, e.target.value)}
+                      onBlur={() => handleQtyInputBlur(item.product.id)}
+                      style={{
+                        width: 42,
+                        textAlign: 'center',
+                        fontSize: 13,
+                        borderRadius: 6,
+                        border: '1px solid var(--color-accent-border)',
+                        background: 'var(--color-accent-control)',
+                        color: 'var(--color-accent-control-text)',
+                        padding: '2px 4px',
+                        fontFamily: 'var(--font-body)',
+                      }}
+                    />
                     <button
                       onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
                       disabled={item.quantity >= max}

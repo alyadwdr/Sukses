@@ -1,6 +1,8 @@
 import { useMemo, useRef, useState } from 'react'
 import { Plus, Search, List, Grid2x2, LayoutGrid, ChevronDown } from 'lucide-react'
 import { useProducts } from '@/features/products/useProducts'
+import { useProductUnits } from '@/features/products/useProductUnits'
+import { useUnitSelector } from '@/hooks/useUnitSelector'
 import { useStockMovements } from '@/features/inventory/useStockMovements'
 import StockInForm from '@/features/inventory/StockInForm'
 import MobileStockInForm from '@/features/inventory/MobileStockInForm'
@@ -47,6 +49,16 @@ const searchInputStyle = {
   border: '1px solid var(--color-border)',
   background: 'var(--color-surface-muted)',
   color: 'var(--color-text)',
+}
+
+const unitSelectStyle = {
+  padding: '4px 8px',
+  borderRadius: 6,
+  border: '1px solid var(--color-border)',
+  background: 'var(--color-surface-muted)',
+  color: 'var(--color-text)',
+  fontFamily: 'var(--font-body)',
+  fontSize: 13,
 }
 
 function ViewSwitcher({ value, onChange }: { value: ViewMode; onChange: (v: ViewMode) => void }) {
@@ -144,6 +156,29 @@ function DotIndicator({ activeSlide, onSelect }: { activeSlide: number; onSelect
   )
 }
 
+function SatuanSelect({
+  p,
+  units,
+  selected,
+  onChange,
+}: {
+  p: { id: string }
+  units: { unit_name: string }[]
+  selected: string
+  onChange: (productId: string, unitName: string) => void
+}) {
+  if (units.length <= 1) return <>{units[0]?.unit_name}</>
+  return (
+    <select value={selected} onChange={(e) => onChange(p.id, e.target.value)} style={unitSelectStyle}>
+      {units.map((u) => (
+        <option key={u.unit_name} value={u.unit_name}>
+          {u.unit_name}
+        </option>
+      ))}
+    </select>
+  )
+}
+
 function relativeUpdateLabel(dateStr: string | undefined) {
   if (!dateStr) return 'Belum ada riwayat'
   const diffMs = Date.now() - new Date(dateStr).getTime()
@@ -158,6 +193,8 @@ function relativeUpdateLabel(dateStr: string | undefined) {
 
 export default function Inventory() {
   const { products, refetch: refetchProducts } = useProducts()
+  const { unitsByProduct } = useProductUnits()
+  const { unitsFor, selectedUnitFor, stockQtyFor, setUnit } = useUnitSelector(unitsByProduct)
   const { movements, loading, refetch: refetchMovements } = useStockMovements()
   const { filter } = useBusinessFilter()
   const { refetch: refetchNotifications } = useNotifications()
@@ -337,7 +374,7 @@ export default function Inventory() {
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontWeight: 700, fontSize: 16 }}>{p.stock}</div>
+                  <div style={{ fontWeight: 700, fontSize: 16 }}>{stockQtyFor(p)}</div>
                   <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{p.unit}</div>
                 </div>
               </div>
@@ -470,8 +507,10 @@ export default function Inventory() {
                         <td style={{ padding: 14 }}>
                           <CategoryBadge category={p.category} />
                         </td>
-                        <td style={{ padding: 14 }}>{p.stock}</td>
-                        <td style={{ padding: 14 }}>{p.unit}</td>
+                        <td style={{ padding: 14 }}>{stockQtyFor(p)}</td>
+                        <td style={{ padding: 14 }}>
+                          <SatuanSelect p={p} units={unitsFor(p)} selected={selectedUnitFor(p).unit_name} onChange={setUnit} />
+                        </td>
                         <td style={{ padding: 14 }}>
                           <span
                             style={{
@@ -518,8 +557,8 @@ export default function Inventory() {
                       {p.variant && (
                         <div style={{ fontSize: sizeConfig[stockView].font - 2, color: 'var(--color-text-muted)' }}>{p.variant}</div>
                       )}
-                      <div style={{ fontSize: sizeConfig[stockView].font - 1, color: 'var(--color-text-muted)' }}>
-                        {p.stock} {p.unit}
+                      <div style={{ fontSize: sizeConfig[stockView].font - 1, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                        {stockQtyFor(p)} <SatuanSelect p={p} units={unitsFor(p)} selected={selectedUnitFor(p).unit_name} onChange={setUnit} />
                       </div>
                       <div style={{ fontSize: sizeConfig[stockView].font - 2, color: 'var(--color-text-muted)' }}>
                         {relativeUpdateLabel(lastUpdateMap[p.id])}

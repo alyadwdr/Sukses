@@ -1,17 +1,35 @@
 import { useMemo, useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { useExpenses } from '@/features/expenses/useExpenses'
 import { useExpenseSummary } from '@/features/expenses/useExpenseSummary'
 import AddExpenseForm from '@/features/expenses/AddExpenseForm'
 import Card from '@/components/Card/Card'
 import Modal from '@/components/Modal/Modal'
+import ConfirmModal from '@/components/ConfirmModal/ConfirmModal'
 import PageTopBar from '@/components/PageTopBar/PageTopBar'
 import Loading from '@/components/Loading/Loading'
 import { useChartColors } from '@/lib/chartColors'
 import { jakartaDateString, jakartaDateOnly, addJakartaDays, startOfJakartaMonth, endOfJakartaMonth, startOfJakartaYear } from '@/lib/time'
 import { Receipt } from 'lucide-react'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { supabase } from '@/lib/supabase'
+import type { Expense } from '@/types/expense'
+
+function iconButtonStyle(bg: string, color: string) {
+  return {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    border: 'none',
+    background: bg,
+    color,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+  }
+}
 
 function formatRupiah(value: number) {
   return `Rp${value.toLocaleString('id-ID')}`
@@ -41,6 +59,8 @@ export default function Expenses() {
   const chart = useChartColors()
   const isMobile = useIsMobile()
   const [showForm, setShowForm] = useState(false)
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
+  const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null)
   const [period, setPeriod] = useState<ChartPeriod>('7d')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -102,6 +122,13 @@ export default function Expenses() {
   function handleFilter() {
     setAppliedFrom(dateFrom)
     setAppliedTo(dateTo)
+  }
+
+  async function handleDeleteExpense() {
+    if (!deletingExpense) return
+    await supabase.from('expenses').delete().eq('id', deletingExpense.id)
+    setDeletingExpense(null)
+    refetch()
   }
 
   const periodTotal = totalChartData.reduce((sum, d) => sum + d.total, 0)
@@ -419,6 +446,7 @@ export default function Expenses() {
                     <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Deskripsi</th>
                     <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Kategori</th>
                     <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Jumlah</th>
+                    <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -428,6 +456,24 @@ export default function Expenses() {
                       <td style={{ padding: 14, color: 'var(--color-primary-text)', fontWeight: 600 }}>{e.description}</td>
                       <td style={{ padding: 14 }}>{e.category}</td>
                       <td style={{ padding: 14, fontWeight: 700 }}>{formatRupiah(e.amount)}</td>
+                      <td style={{ padding: 14 }}>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button
+                            onClick={() => setEditingExpense(e)}
+                            aria-label="Edit"
+                            style={iconButtonStyle('var(--color-action-edit-bg)', 'var(--color-action-edit-text)')}
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            onClick={() => setDeletingExpense(e)}
+                            aria-label="Hapus"
+                            style={iconButtonStyle('var(--color-action-danger-bg)', 'var(--color-action-danger-text)')}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -447,6 +493,28 @@ export default function Expenses() {
             onCancel={() => setShowForm(false)}
           />
         </Modal>
+      )}
+
+      {editingExpense && (
+        <Modal onClose={() => setEditingExpense(null)}>
+          <AddExpenseForm
+            expense={editingExpense}
+            onSuccess={() => {
+              setEditingExpense(null)
+              refetch()
+            }}
+            onCancel={() => setEditingExpense(null)}
+          />
+        </Modal>
+      )}
+
+      {deletingExpense && (
+        <ConfirmModal
+          title="Hapus Pengeluaran"
+          description={`Yakin ingin menghapus pengeluaran "${deletingExpense.description}"? Tindakan ini tidak bisa dibatalkan.`}
+          onConfirm={handleDeleteExpense}
+          onCancel={() => setDeletingExpense(null)}
+        />
       )}
     </div>
   )

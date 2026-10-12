@@ -41,6 +41,7 @@ export default function NewTransactionPage() {
   const [transactionDate, setTransactionDate] = useState(todayStr())
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [qtyInputs, setQtyInputs] = useState<Record<string, string>>({})
 
   useEffect(() => {
     supabase
@@ -94,6 +95,22 @@ export default function NewTransactionPage() {
         return { ...item, quantity: Math.min(quantity, max) }
       })
     )
+  }
+
+  function handleQtyInputChange(productId: string, raw: string) {
+    setQtyInputs((prev) => ({ ...prev, [productId]: raw }))
+    const parsed = parseInt(raw, 10)
+    if (!isNaN(parsed) && parsed > 0) {
+      updateQuantity(productId, parsed)
+    }
+  }
+
+  function handleQtyInputBlur(productId: string) {
+    setQtyInputs((prev) => {
+      const next = { ...prev }
+      delete next[productId]
+      return next
+    })
   }
 
   function updateUnit(productId: string, unitName: string) {
@@ -326,7 +343,24 @@ export default function NewTransactionPage() {
                           >
                             -
                           </button>
-                          <span style={{ fontSize: 13, color: 'var(--color-on-accent)' }}>{item.quantity}</span>
+                          <input
+                            type="number"
+                            min={1}
+                            value={qtyInputs[item.product.id] ?? String(item.quantity)}
+                            onChange={(e) => handleQtyInputChange(item.product.id, e.target.value)}
+                            onBlur={() => handleQtyInputBlur(item.product.id)}
+                            style={{
+                              width: 44,
+                              textAlign: 'center',
+                              fontSize: 13,
+                              borderRadius: 6,
+                              border: '1px solid var(--color-accent-border)',
+                              background: 'var(--color-accent-control)',
+                              color: 'var(--color-accent-control-text)',
+                              padding: '3px 4px',
+                              fontFamily: 'var(--font-body)',
+                            }}
+                          />
                           <button
                             onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
                             disabled={item.quantity >= max}

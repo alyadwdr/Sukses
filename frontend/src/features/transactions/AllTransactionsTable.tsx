@@ -29,7 +29,9 @@ export default function AllTransactionsTable({ transactions }: Props) {
               <td style={{ padding: 14 }}>
                 <CategoryBadge category={item.products.category} />
               </td>
-              <td style={{ padding: 14 }}>{item.quantity}</td>
+              <td style={{ padding: 14 }}>
+                {item.unit_label ? `${item.unit_quantity} ${item.unit_label}` : item.quantity}
+              </td>
               <td style={{ padding: 14 }}>Rp{item.price_at_sale.toLocaleString('id-ID')}</td>
               <td style={{ padding: 14, fontWeight: 700 }}>Rp{item.subtotal.toLocaleString('id-ID')}</td>
             </tr>
