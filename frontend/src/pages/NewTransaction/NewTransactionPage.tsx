@@ -1,14 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Search, Calendar, Banknote, QrCode, ChevronDown, ChevronUp } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useNotifications } from '@/context/NotificationsContext'
+import { useProductUnits } from '@/features/products/useProductUnits'
+import { allUnitsForProduct, type FlattenedUnit } from '@/lib/units'
 import { jakartaDateString, jakartaTimestampOnDate } from '@/lib/time'
 import type { Product } from '@/types/product'
 
 interface CartItem {
   product: Product
   quantity: number
+  unitName: string
 }
 
 function todayStr() {
@@ -27,6 +30,7 @@ const inputStyle = {
 export default function NewTransactionPage() {
   const navigate = useNavigate()
   const { refetch: refetchNotifications } = useNotifications()
+  const { unitsByProduct } = useProductUnits()
 
   const [products, setProducts] = useState<Product[]>([])
   const [search, setSearch] = useState('')
@@ -49,16 +53,31 @@ export default function NewTransactionPage() {
 
   const filteredProducts = products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
 
+  function unitsFor(product: Product): FlattenedUnit[] {
+    return allUnitsForProduct(product, unitsByProduct(product.id))
+  }
+
+  function unitFor(product: Product, unitName: string): FlattenedUnit {
+    const units = unitsFor(product)
+    return units.find((u) => u.unit_name === unitName) ?? units[units.length - 1]
+  }
+
+  function maxQtyForUnit(product: Product, unitName: string): number {
+    const unit = unitFor(product, unitName)
+    return Math.floor(product.stock / unit.factor_to_base)
+  }
+
   function addToCart(product: Product) {
     if (product.stock <= 0) return
     setLastTouchedId(product.id)
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id)
       if (existing) {
-        if (existing.quantity >= product.stock) return prev
+        const max = maxQtyForUnit(product, existing.unitName)
+        if (existing.quantity >= max) return prev
         return prev.map((item) => (item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item))
       }
-      return [...prev, { product, quantity: 1 }]
+      return [...prev, { product, quantity: 1, unitName: product.unit }]
     })
   }
 
@@ -71,14 +90,35 @@ export default function NewTransactionPage() {
     setCart((prev) =>
       prev.map((item) => {
         if (item.product.id !== productId) return item
-        const clamped = Math.min(quantity, item.product.stock)
-        return { ...item, quantity: clamped }
+        const max = maxQtyForUnit(item.product, item.unitName)
+        return { ...item, quantity: Math.min(quantity, max) }
       })
     )
   }
 
-  const total = cart.reduce((sum, item) => sum + item.product.selling_price * item.quantity, 0)
-  const lastItem = cart.find((item) => item.product.id === lastTouchedId) ?? cart[cart.length - 1]
+  function updateUnit(productId: string, unitName: string) {
+    setLastTouchedId(productId)
+    setCart((prev) =>
+      prev.map((item) => {
+        if (item.product.id !== productId) return item
+        const max = maxQtyForUnit(item.product, unitName)
+        return { ...item, unitName, quantity: Math.min(item.quantity, Math.max(1, max)) }
+      })
+    )
+  }
+
+  const cartLines = useMemo(
+    () =>
+      cart.map((item) => {
+        const unit = unitFor(item.product, item.unitName)
+        return { item, unit, lineTotal: unit.selling_price * item.quantity }
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [cart, unitsByProduct]
+  )
+
+  const total = cartLines.reduce((sum, line) => sum + line.lineTotal, 0)
+  const lastLine = cartLines.find((l) => l.item.product.id === lastTouchedId) ?? cartLines[cartLines.length - 1]
 
   async function handleCompleteSale() {
     if (cart.length === 0) return
@@ -87,11 +127,13 @@ export default function NewTransactionPage() {
 
     const createdAt = jakartaTimestampOnDate(transactionDate)
 
-    const items = cart.map((item) => ({
+    const items = cartLines.map(({ item, unit, lineTotal }) => ({
       product_id: item.product.id,
-      quantity: item.quantity,
-      price_at_sale: item.product.selling_price,
-      subtotal: item.product.selling_price * item.quantity,
+      quantity: item.quantity * unit.factor_to_base,
+      price_at_sale: unit.selling_price,
+      subtotal: lineTotal,
+      unit_label: unit.unit_name,
+      unit_quantity: item.quantity,
     }))
 
     const { error } = await supabase.rpc('create_sale', {
@@ -245,17 +287,17 @@ export default function NewTransactionPage() {
                 fontFamily: 'var(--font-body)',
               }}
             >
-              {!cartExpanded && lastItem ? (
+              {!cartExpanded && lastLine ? (
                 <>
                   <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--color-on-accent)' }}>{lastItem.product.name}</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--color-on-accent)' }}>{lastLine.item.product.name}</div>
                     <div style={{ fontSize: 12, color: 'var(--color-on-accent-muted)' }}>
-                      {lastItem.quantity} × Rp{lastItem.product.selling_price.toLocaleString('id-ID')} · {cart.length} produk
+                      {lastLine.item.quantity} {lastLine.unit.unit_name} × Rp{lastLine.unit.selling_price.toLocaleString('id-ID')} · {cart.length} produk
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontWeight: 700, color: 'var(--color-on-accent)' }}>
-                      Rp{(lastItem.product.selling_price * lastItem.quantity).toLocaleString('id-ID')}
+                      Rp{lastLine.lineTotal.toLocaleString('id-ID')}
                     </span>
                     <ChevronUp size={16} color="var(--color-on-accent)" />
                   </div>
@@ -270,41 +312,65 @@ export default function NewTransactionPage() {
 
             {cartExpanded && (
               <div style={{ maxHeight: '40vh', overflowY: 'auto', marginBottom: 12 }}>
-                {cart.map((item) => (
-                  <div key={item.product.id} style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 13, marginBottom: 4, color: 'var(--color-on-accent)' }}>{item.product.name}</div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                        <button
-                          onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                          style={{ width: 24, height: 24, borderRadius: 6, border: '1px solid var(--color-accent-border)', background: 'var(--color-accent-control)', color: 'var(--color-accent-control-text)', cursor: 'pointer' }}
-                        >
-                          -
-                        </button>
-                        <span style={{ fontSize: 13, color: 'var(--color-on-accent)' }}>{item.quantity}</span>
-                        <button
-                          onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                          disabled={item.quantity >= item.product.stock}
-                          style={{
-                            width: 24,
-                            height: 24,
-                            borderRadius: 6,
-                            border: '1px solid var(--color-accent-border)',
-                            background: 'var(--color-accent-control)',
-                            color: 'var(--color-accent-control-text)',
-                            opacity: item.quantity >= item.product.stock ? 0.4 : 1,
-                            cursor: item.quantity >= item.product.stock ? 'not-allowed' : 'pointer',
-                          }}
-                        >
-                          +
-                        </button>
+                {cartLines.map(({ item, lineTotal }) => {
+                  const units = unitsFor(item.product)
+                  const max = maxQtyForUnit(item.product, item.unitName)
+                  return (
+                    <div key={item.product.id} style={{ marginBottom: 14 }}>
+                      <div style={{ fontSize: 13, marginBottom: 4, color: 'var(--color-on-accent)' }}>{item.product.name}</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                          <button
+                            onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                            style={{ width: 24, height: 24, borderRadius: 6, border: '1px solid var(--color-accent-border)', background: 'var(--color-accent-control)', color: 'var(--color-accent-control-text)', cursor: 'pointer' }}
+                          >
+                            -
+                          </button>
+                          <span style={{ fontSize: 13, color: 'var(--color-on-accent)' }}>{item.quantity}</span>
+                          <button
+                            onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                            disabled={item.quantity >= max}
+                            style={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: 6,
+                              border: '1px solid var(--color-accent-border)',
+                              background: 'var(--color-accent-control)',
+                              color: 'var(--color-accent-control-text)',
+                              opacity: item.quantity >= max ? 0.4 : 1,
+                              cursor: item.quantity >= max ? 'not-allowed' : 'pointer',
+                            }}
+                          >
+                            +
+                          </button>
+                          {units.length > 1 && (
+                            <select
+                              value={item.unitName}
+                              onChange={(e) => updateUnit(item.product.id, e.target.value)}
+                              style={{
+                                fontSize: 12,
+                                borderRadius: 6,
+                                border: '1px solid var(--color-accent-border)',
+                                background: 'var(--color-accent-control)',
+                                color: 'var(--color-accent-control-text)',
+                                padding: '2px 4px',
+                              }}
+                            >
+                              {units.map((u) => (
+                                <option key={u.unit_name} value={u.unit_name}>
+                                  {u.unit_name}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-on-accent)' }}>
+                          Rp{lineTotal.toLocaleString('id-ID')}
+                        </span>
                       </div>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-on-accent)' }}>
-                        Rp{(item.product.selling_price * item.quantity).toLocaleString('id-ID')}
-                      </span>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
 

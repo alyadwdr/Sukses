@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { useProductUnits } from '@/features/products/useProductUnits'
+import { allUnitsForProduct } from '@/lib/units'
 import type { Product } from '@/types/product'
 
 interface StockInFormProps {
@@ -18,14 +20,16 @@ const inputStyle = {
 }
 
 export default function StockInForm({ products, onSuccess }: StockInFormProps) {
+  const { unitsByProduct } = useProductUnits()
   const [selectedName, setSelectedName] = useState('')
   const [selectedProductId, setSelectedProductId] = useState('')
   const [search, setSearch] = useState('')
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [quantity, setQuantity] = useState('')
+  const [unitName, setUnitName] = useState('')
+  const [autoExpense, setAutoExpense] = useState(true)
   const [saving, setSaving] = useState(false)
 
-  // Kelompokkan produk berdasarkan nama, biar ketahuan mana yang punya lebih dari 1 varian
   const groupedByName = useMemo(() => {
     const map = new Map<string, Product[]>()
     for (const p of products) {
@@ -44,38 +48,56 @@ export default function StockInForm({ products, onSuccess }: StockInFormProps) {
 
   const selectedProduct = variantsForSelectedName.find((p) => p.id === selectedProductId) ?? null
 
+  const productUnits = useMemo(
+    () => (selectedProduct ? allUnitsForProduct(selectedProduct, unitsByProduct(selectedProduct.id)) : []),
+    [selectedProduct, unitsByProduct]
+  )
+  const isMultiUnit = productUnits.length > 1
+  const selectedUnit = productUnits.find((u) => u.unit_name === unitName) ?? productUnits[productUnits.length - 1] ?? null
+
   function handleSelectName(name: string) {
     setSelectedName(name)
     setDropdownOpen(false)
     setSearch('')
     const variants = groupedByName.get(name) ?? []
-    // Kalau cuma ada 1 varian, langsung pilih otomatis. Kalau lebih dari 1, biarkan kosong dulu sampai dipilih manual.
     setSelectedProductId(variants.length === 1 ? variants[0].id : '')
+    setUnitName('')
   }
 
-  const newStock = selectedProduct ? selectedProduct.stock + Number(quantity || 0) : 0
+  const qtyInBase = selectedUnit ? Number(quantity || 0) * selectedUnit.factor_to_base : 0
+  const newStock = selectedProduct ? selectedProduct.stock + qtyInBase : 0
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!selectedProduct || !quantity) return
+    if (!selectedProduct || !quantity || !selectedUnit) return
     setSaving(true)
 
     await supabase
       .from('products')
-      .update({ stock: selectedProduct.stock + Number(quantity) })
+      .update({ stock: selectedProduct.stock + qtyInBase })
       .eq('id', selectedProduct.id)
 
     await supabase.from('stock_movements').insert({
       product_id: selectedProduct.id,
-      change: Number(quantity),
+      change: qtyInBase,
       reason: 'stock_in',
     })
+
+    if (autoExpense) {
+      await supabase.from('expenses').insert({
+        description: `Stok masuk: ${selectedProduct.name}`,
+        category: 'Belanja stok',
+        amount: Number(quantity) * selectedUnit.purchase_price,
+        expense_date: new Date().toISOString().slice(0, 10),
+      })
+    }
 
     setSaving(false)
     setSelectedName('')
     setSelectedProductId('')
     setSearch('')
     setQuantity('')
+    setUnitName('')
     onSuccess()
   }
 
@@ -160,7 +182,10 @@ export default function StockInForm({ products, onSuccess }: StockInFormProps) {
         {hasMultipleVariants && (
           <select
             value={selectedProductId}
-            onChange={(e) => setSelectedProductId(e.target.value)}
+            onChange={(e) => {
+              setSelectedProductId(e.target.value)
+              setUnitName('')
+            }}
             required
             style={{ ...inputStyle, flex: 1, minWidth: 140 }}
           >
@@ -181,9 +206,21 @@ export default function StockInForm({ products, onSuccess }: StockInFormProps) {
           required
           style={{ ...inputStyle, flex: 1, minWidth: 100 }}
         />
+
+        {isMultiUnit && (
+          <select value={unitName} onChange={(e) => setUnitName(e.target.value)} required style={{ ...inputStyle, flex: 1, minWidth: 110 }}>
+            <option value="">Satuan</option>
+            {productUnits.map((u) => (
+              <option key={u.unit_name} value={u.unit_name}>
+                {u.unit_name}
+              </option>
+            ))}
+          </select>
+        )}
+
         <button
           type="submit"
-          disabled={saving || !selectedProduct}
+          disabled={saving || !selectedProduct || (isMultiUnit && !unitName)}
           style={{
             padding: '12px 28px',
             borderRadius: 10,
@@ -193,18 +230,23 @@ export default function StockInForm({ products, onSuccess }: StockInFormProps) {
             fontWeight: 600,
             cursor: 'pointer',
             whiteSpace: 'nowrap',
-            opacity: saving || !selectedProduct ? 0.6 : 1,
+            opacity: saving || !selectedProduct || (isMultiUnit && !unitName) ? 0.6 : 1,
           }}
         >
           {saving ? 'Menyimpan...' : 'Tambah'}
         </button>
       </div>
 
-      {selectedProduct && quantity && (
+      {selectedProduct && quantity && selectedUnit && (
         <div style={{ marginTop: 10, fontSize: 13, color: 'var(--color-text-muted)' }}>
           Stok saat ini: {selectedProduct.stock} {selectedProduct.unit} → Stok baru: {newStock} {selectedProduct.unit}
         </div>
       )}
+
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--color-text)', marginTop: 10 }}>
+        <input type="checkbox" checked={autoExpense} onChange={(e) => setAutoExpense(e.target.checked)} />
+        Catat sebagai pengeluaran "Belanja stok"
+      </label>
     </form>
   )
 }

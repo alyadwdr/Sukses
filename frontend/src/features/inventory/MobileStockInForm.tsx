@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { X, ChevronDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { useProductUnits } from '@/features/products/useProductUnits'
+import { allUnitsForProduct } from '@/lib/units'
 import type { Product } from '@/types/product'
 
 interface MobileStockInFormProps {
@@ -27,11 +29,14 @@ const labelStyle = {
 }
 
 export default function MobileStockInForm({ products, onSuccess, onCancel }: MobileStockInFormProps) {
+  const { unitsByProduct } = useProductUnits()
   const [selectedName, setSelectedName] = useState('')
   const [selectedProductId, setSelectedProductId] = useState('')
   const [search, setSearch] = useState('')
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [quantity, setQuantity] = useState(1)
+  const [unitName, setUnitName] = useState('')
+  const [autoExpense, setAutoExpense] = useState(true)
   const [saving, setSaving] = useState(false)
 
   const groupedByName = useMemo(() => {
@@ -50,25 +55,43 @@ export default function MobileStockInForm({ products, onSuccess, onCancel }: Mob
   const hasMultipleVariants = variantsForSelectedName.length > 1
   const selectedProduct = variantsForSelectedName.find((p) => p.id === selectedProductId) ?? null
 
+  const productUnits = useMemo(
+    () => (selectedProduct ? allUnitsForProduct(selectedProduct, unitsByProduct(selectedProduct.id)) : []),
+    [selectedProduct, unitsByProduct]
+  )
+  const isMultiUnit = productUnits.length > 1
+  const selectedUnit = productUnits.find((u) => u.unit_name === unitName) ?? productUnits[productUnits.length - 1] ?? null
+  const qtyInBase = selectedUnit ? quantity * selectedUnit.factor_to_base : 0
+
   function handleSelectName(name: string) {
     setSelectedName(name)
     setDropdownOpen(false)
     setSearch('')
     const variants = groupedByName.get(name) ?? []
     setSelectedProductId(variants.length === 1 ? variants[0].id : '')
+    setUnitName('')
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!selectedProduct || !quantity) return
+    if (!selectedProduct || !quantity || !selectedUnit) return
     setSaving(true)
 
-    await supabase.from('products').update({ stock: selectedProduct.stock + quantity }).eq('id', selectedProduct.id)
+    await supabase.from('products').update({ stock: selectedProduct.stock + qtyInBase }).eq('id', selectedProduct.id)
     await supabase.from('stock_movements').insert({
       product_id: selectedProduct.id,
-      change: quantity,
+      change: qtyInBase,
       reason: 'stock_in',
     })
+
+    if (autoExpense) {
+      await supabase.from('expenses').insert({
+        description: `Stok masuk: ${selectedProduct.name}`,
+        category: 'Belanja stok',
+        amount: quantity * selectedUnit.purchase_price,
+        expense_date: new Date().toISOString().slice(0, 10),
+      })
+    }
 
     setSaving(false)
     onSuccess()
@@ -174,7 +197,10 @@ export default function MobileStockInForm({ products, onSuccess, onCancel }: Mob
           <label style={labelStyle}>Varian</label>
           <select
             value={selectedProductId}
-            onChange={(e) => setSelectedProductId(e.target.value)}
+            onChange={(e) => {
+              setSelectedProductId(e.target.value)
+              setUnitName('')
+            }}
             required
             style={inputStyle}
           >
@@ -182,6 +208,20 @@ export default function MobileStockInForm({ products, onSuccess, onCancel }: Mob
             {variantsForSelectedName.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.variant || 'Tanpa varian'}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {isMultiUnit && (
+        <div style={{ marginBottom: 16 }}>
+          <label style={labelStyle}>Satuan</label>
+          <select value={unitName} onChange={(e) => setUnitName(e.target.value)} required style={inputStyle}>
+            <option value="">Pilih satuan</option>
+            {productUnits.map((u) => (
+              <option key={u.unit_name} value={u.unit_name}>
+                {u.unit_name}
               </option>
             ))}
           </select>
@@ -213,16 +253,21 @@ export default function MobileStockInForm({ products, onSuccess, onCancel }: Mob
             +
           </button>
         </div>
-        {selectedProduct && (
+        {selectedProduct && selectedUnit && (
           <div style={{ marginTop: 8, fontSize: 12, color: 'var(--color-text-muted)' }}>
-            Stok saat ini: {selectedProduct.stock} {selectedProduct.unit} → Stok baru: {selectedProduct.stock + quantity} {selectedProduct.unit}
+            Stok saat ini: {selectedProduct.stock} {selectedProduct.unit} → Stok baru: {selectedProduct.stock + qtyInBase} {selectedProduct.unit}
           </div>
         )}
       </div>
 
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--color-text)', marginBottom: 20 }}>
+        <input type="checkbox" checked={autoExpense} onChange={(e) => setAutoExpense(e.target.checked)} />
+        Catat sebagai pengeluaran "Belanja stok"
+      </label>
+
       <button
         type="submit"
-        disabled={saving || !selectedProduct}
+        disabled={saving || !selectedProduct || (isMultiUnit && !unitName)}
         style={{
           width: '100%',
           padding: 14,
@@ -232,7 +277,7 @@ export default function MobileStockInForm({ products, onSuccess, onCancel }: Mob
           color: 'var(--color-on-primary)',
           fontWeight: 700,
           cursor: saving || !selectedProduct ? 'not-allowed' : 'pointer',
-          opacity: saving || !selectedProduct ? 0.6 : 1,
+          opacity: saving || !selectedProduct || (isMultiUnit && !unitName) ? 0.6 : 1,
         }}
       >
         {saving ? 'Menyimpan...' : 'Simpan Tambah Stok'}

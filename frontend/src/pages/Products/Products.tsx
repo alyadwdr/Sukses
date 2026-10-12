@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { Plus, Search, List, Grid2x2, LayoutGrid, ChevronDown, Pencil, Trash2, Info, Check } from 'lucide-react'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useProducts } from '@/features/products/useProducts'
+import { useProductUnits } from '@/features/products/useProductUnits'
+import { allUnitsForProduct, stockBreakdown } from '@/lib/units'
 import AddProductForm from '@/features/products/AddProductForm'
 import EditProductForm from '@/features/products/EditProductForm'
 import PriceHistoryModal from '@/features/products/PriceHistoryModal'
@@ -48,6 +50,14 @@ function iconButtonStyle(bg: string, color: string) {
 
 export default function Products() {
   const { products, loading, refetch } = useProducts()
+  const { unitsByProduct } = useProductUnits()
+
+  function unitDisplay(p: Product): string {
+    const units = allUnitsForProduct(p, unitsByProduct(p.id))
+    if (units.length <= 1) return p.unit
+    return stockBreakdown(p.stock, units)
+  }
+
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null)
@@ -158,7 +168,7 @@ export default function Products() {
                         <CategoryBadge category={p.category} />
                       </div>
                       <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
-                        {p.variant || '—'} · {p.stock} {p.unit}
+                        {p.variant || '—'} · {unitDisplay(p)}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -430,7 +440,7 @@ export default function Products() {
                   <td style={{ padding: 14 }}>Rp{p.purchase_price.toLocaleString('id-ID')}</td>
                   <td style={{ padding: 14 }}>Rp{p.selling_price.toLocaleString('id-ID')}</td>
                   <td style={{ padding: 14 }}>{p.stock}</td>
-                  <td style={{ padding: 14 }}>{p.unit}</td>
+                  <td style={{ padding: 14 }}>{unitDisplay(p)}</td>
                   <td style={{ padding: 14 }}>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button
@@ -525,7 +535,7 @@ export default function Products() {
                   Rp{p.selling_price.toLocaleString('id-ID')}
                 </div>
                 <div style={{ fontSize: sizeConfig[viewMode].font - 1, color: 'var(--color-text-muted)' }}>
-                  {p.stock} {p.unit}
+                  {unitDisplay(p)}
                 </div>
               </div>
             ))}

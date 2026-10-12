@@ -16,6 +16,8 @@ export interface TransactionRow {
     quantity: number
     price_at_sale: number
     subtotal: number
+    unit_label: string | null
+    unit_quantity: number | null
     products: {
       name: string
       category: string
@@ -45,6 +47,8 @@ export function useTransactions() {
           quantity,
           price_at_sale,
           subtotal,
+          unit_label,
+          unit_quantity,
           products ( name, category )
         )
       `)

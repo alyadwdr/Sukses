@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Search, X, List, Grid2x2, LayoutGrid, ChevronDown, Banknote, QrCode, Calendar, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useNotifications } from '@/context/NotificationsContext'
+import { useProductUnits } from '@/features/products/useProductUnits'
+import { allUnitsForProduct, type FlattenedUnit } from '@/lib/units'
 import { jakartaDateString, jakartaTimestampOnDate } from '@/lib/time'
 import type { Product } from '@/types/product'
 
@@ -11,6 +13,7 @@ const ENABLE_CASH_DETAILS = false
 interface CartItem {
   product: Product
   quantity: number
+  unitName: string
 }
 
 interface NewTransactionFormProps {
@@ -50,6 +53,7 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [viewMenuOpen, setViewMenuOpen] = useState(false)
   const { refetch: refetchNotifications } = useNotifications()
+  const { unitsByProduct } = useProductUnits()
 
   useEffect(() => {
     supabase
@@ -64,18 +68,33 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
     p.name.toLowerCase().includes(search.toLowerCase())
   )
 
+  function unitsFor(product: Product): FlattenedUnit[] {
+    return allUnitsForProduct(product, unitsByProduct(product.id))
+  }
+
+  function unitFor(product: Product, unitName: string): FlattenedUnit {
+    const units = unitsFor(product)
+    return units.find((u) => u.unit_name === unitName) ?? units[units.length - 1]
+  }
+
+  function maxQtyForUnit(product: Product, unitName: string): number {
+    const unit = unitFor(product, unitName)
+    return Math.floor(product.stock / unit.factor_to_base)
+  }
+
   function addToCart(product: Product) {
     if (product.stock <= 0) return
 
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id)
       if (existing) {
-        if (existing.quantity >= product.stock) return prev
+        const max = maxQtyForUnit(product, existing.unitName)
+        if (existing.quantity >= max) return prev
         return prev.map((item) =>
           item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
         )
       }
-      return [...prev, { product, quantity: 1 }]
+      return [...prev, { product, quantity: 1, unitName: product.unit }]
     })
   }
 
@@ -87,13 +106,33 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
     setCart((prev) =>
       prev.map((item) => {
         if (item.product.id !== productId) return item
-        const clamped = Math.min(quantity, item.product.stock)
-        return { ...item, quantity: clamped }
+        const max = maxQtyForUnit(item.product, item.unitName)
+        return { ...item, quantity: Math.min(quantity, max) }
       })
     )
   }
 
-  const total = cart.reduce((sum, item) => sum + item.product.selling_price * item.quantity, 0)
+  function updateUnit(productId: string, unitName: string) {
+    setCart((prev) =>
+      prev.map((item) => {
+        if (item.product.id !== productId) return item
+        const max = maxQtyForUnit(item.product, unitName)
+        return { ...item, unitName, quantity: Math.min(item.quantity, Math.max(1, max)) }
+      })
+    )
+  }
+
+  const cartLines = useMemo(
+    () =>
+      cart.map((item) => {
+        const unit = unitFor(item.product, item.unitName)
+        return { item, unit, lineTotal: unit.selling_price * item.quantity }
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [cart, unitsByProduct]
+  )
+
+  const total = cartLines.reduce((sum, line) => sum + line.lineTotal, 0)
   const change = ENABLE_CASH_DETAILS ? Number(cashReceived || 0) - total : 0
   const cashInvalid =
     ENABLE_CASH_DETAILS && paymentMethod === 'cash' && (cashReceived === '' || Number(cashReceived) < total)
@@ -105,11 +144,13 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
 
     const createdAt = jakartaTimestampOnDate(transactionDate)
 
-    const items = cart.map((item) => ({
+    const items = cartLines.map(({ item, unit, lineTotal }) => ({
       product_id: item.product.id,
-      quantity: item.quantity,
-      price_at_sale: item.product.selling_price,
-      subtotal: item.product.selling_price * item.quantity,
+      quantity: item.quantity * unit.factor_to_base,
+      price_at_sale: unit.selling_price,
+      subtotal: lineTotal,
+      unit_label: unit.unit_name,
+      unit_quantity: item.quantity,
     }))
 
     const { error } = await supabase.rpc('create_sale', {
@@ -354,41 +395,70 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
         >
           <h3 style={{ marginBottom: 16, fontSize: 15, color: 'var(--color-on-accent)' }}>Transaksi Saat Ini</h3>
           {cart.length === 0 && <p style={{ color: 'var(--color-on-accent-muted)', fontSize: 13 }}>Belum ada item</p>}
-          {cart.map((item) => (
-            <div key={item.product.id} style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 13, marginBottom: 4 }}>{item.product.name}</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <button
-                    onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                    style={{ width: 22, height: 22, borderRadius: 6, border: '1px solid var(--color-accent-border)', background: 'var(--color-accent-control)', color: 'var(--color-accent-control-text)', cursor: 'pointer' }}
-                  >
-                    -
-                  </button>
-                  <span style={{ fontSize: 13 }}>{item.quantity}</span>
-                  <button
-                    onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                    disabled={item.quantity >= item.product.stock}
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 6,
-                      border: '1px solid var(--color-accent-border)',
-                      background: 'var(--color-accent-control)',
-                      color: 'var(--color-accent-control-text)',
-                      opacity: item.quantity >= item.product.stock ? 0.4 : 1,
-                      cursor: item.quantity >= item.product.stock ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    +
-                  </button>
+          {cartLines.map(({ item, unit, lineTotal }) => {
+            const units = unitsFor(item.product)
+            const max = maxQtyForUnit(item.product, item.unitName)
+            return (
+              <div key={item.product.id} style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 13, marginBottom: 4 }}>{item.product.name}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <button
+                      onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                      style={{ width: 22, height: 22, borderRadius: 6, border: '1px solid var(--color-accent-border)', background: 'var(--color-accent-control)', color: 'var(--color-accent-control-text)', cursor: 'pointer' }}
+                    >
+                      -
+                    </button>
+                    <span style={{ fontSize: 13 }}>{item.quantity}</span>
+                    <button
+                      onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                      disabled={item.quantity >= max}
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: 6,
+                        border: '1px solid var(--color-accent-border)',
+                        background: 'var(--color-accent-control)',
+                        color: 'var(--color-accent-control-text)',
+                        opacity: item.quantity >= max ? 0.4 : 1,
+                        cursor: item.quantity >= max ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      +
+                    </button>
+                    {units.length > 1 && (
+                      <select
+                        value={item.unitName}
+                        onChange={(e) => updateUnit(item.product.id, e.target.value)}
+                        style={{
+                          fontSize: 12,
+                          borderRadius: 6,
+                          border: '1px solid var(--color-accent-border)',
+                          background: 'var(--color-accent-control)',
+                          color: 'var(--color-accent-control-text)',
+                          padding: '2px 4px',
+                        }}
+                      >
+                        {units.map((u) => (
+                          <option key={u.unit_name} value={u.unit_name}>
+                            {u.unit_name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>
+                    Rp{lineTotal.toLocaleString('id-ID')}
+                  </span>
                 </div>
-                <span style={{ fontSize: 13, fontWeight: 600 }}>
-                  Rp{(item.product.selling_price * item.quantity).toLocaleString('id-ID')}
-                </span>
+                {unit.factor_to_base > 1 && (
+                  <div style={{ fontSize: 11, color: 'var(--color-on-accent-muted)', marginTop: 2 }}>
+                    ≈ {item.quantity * unit.factor_to_base} {item.product.unit}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
 
           <hr style={{ border: 'none', borderTop: '1px solid var(--color-accent-border)', margin: '16px 0' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 16, marginBottom: 16 }}>

@@ -24,7 +24,7 @@ function ItemRow({ item }: { item: TransactionRow['transaction_items'][number] }
     >
       <span>{item.products.name}</span>
       <span style={{ color: 'var(--color-text-muted)', fontSize: 12 }}>
-        {item.quantity} x Rp{item.price_at_sale.toLocaleString('id-ID')}
+        {item.unit_label ? `${item.unit_quantity} ${item.unit_label}` : item.quantity} x Rp{item.price_at_sale.toLocaleString('id-ID')}
       </span>
       <span style={{ fontWeight: 600, textAlign: 'right' }}>Rp{item.subtotal.toLocaleString('id-ID')}</span>
     </div>
