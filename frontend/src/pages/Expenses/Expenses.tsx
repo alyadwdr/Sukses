@@ -1,20 +1,39 @@
 import { useMemo, useState } from 'react'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, Search, ArrowUp, ArrowDown } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { useExpenses } from '@/features/expenses/useExpenses'
-import { useExpenseSummary } from '@/features/expenses/useExpenseSummary'
 import AddExpenseForm from '@/features/expenses/AddExpenseForm'
 import Card from '@/components/Card/Card'
 import Modal from '@/components/Modal/Modal'
 import ConfirmModal from '@/components/ConfirmModal/ConfirmModal'
 import PageTopBar from '@/components/PageTopBar/PageTopBar'
 import Loading from '@/components/Loading/Loading'
+import TimeFilterTabs, { type TimeFilterValue } from '@/components/TimeFilterTabs/TimeFilterTabs'
 import { useChartColors } from '@/lib/chartColors'
-import { jakartaDateString, jakartaDateOnly, addJakartaDays, startOfJakartaMonth, endOfJakartaMonth, startOfJakartaYear } from '@/lib/time'
+import {
+  jakartaDateString,
+  jakartaDateOnly,
+  addJakartaDays,
+  startOfJakartaMonth,
+  endOfJakartaMonth,
+  startOfJakartaYear,
+  endOfJakartaYear,
+} from '@/lib/time'
 import { Receipt } from 'lucide-react'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { supabase } from '@/lib/supabase'
 import type { Expense } from '@/types/expense'
+
+function rangeBoundsFor(filter: TimeFilterValue, customFrom: string, customTo: string): { from: string; to: string } | null {
+  if (filter === 'today') {
+    const t = jakartaDateString()
+    return { from: t, to: t }
+  }
+  if (filter === 'month') return { from: jakartaDateString(startOfJakartaMonth()), to: jakartaDateString(endOfJakartaMonth()) }
+  if (filter === 'year') return { from: jakartaDateString(startOfJakartaYear()), to: jakartaDateString(endOfJakartaYear()) }
+  if (filter === 'custom' && customFrom && customTo) return { from: customFrom, to: customTo }
+  return null
+}
 
 function iconButtonStyle(bg: string, color: string) {
   return {
@@ -43,45 +62,57 @@ const periodOptions: { label: string; value: ChartPeriod }[] = [
   { label: '1Y', value: '1y' },
 ]
 
-const inputStyle = {
+const searchInputStyle = {
   width: '100%',
-  padding: '10px 12px',
+  padding: '10px 12px 10px 38px',
   borderRadius: 10,
-  border: '1px solid var(--color-accent-border)',
-  background: 'var(--color-accent-control)',
-  color: 'var(--color-accent-control-text)',
+  border: '1px solid var(--color-border)',
+  background: 'var(--color-surface-muted)',
+  color: 'var(--color-text)',
   fontFamily: 'var(--font-body)',
 }
 
 export default function Expenses() {
   const { expenses, loading, refetch } = useExpenses()
-  const summary = useExpenseSummary(expenses)
   const chart = useChartColors()
   const isMobile = useIsMobile()
   const [showForm, setShowForm] = useState(false)
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
   const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null)
   const [period, setPeriod] = useState<ChartPeriod>('7d')
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
+  const [timeFilter, setTimeFilter] = useState<TimeFilterValue>('all')
+  const [customFrom, setCustomFrom] = useState('')
+  const [customTo, setCustomTo] = useState('')
   const [appliedFrom, setAppliedFrom] = useState('')
   const [appliedTo, setAppliedTo] = useState('')
+  const [tableSearch, setTableSearch] = useState('')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
 
-  const filteredExpenses = useMemo(() => {
-    return expenses.filter((e) => {
-      if (appliedFrom && e.expense_date < appliedFrom) return false
-      if (appliedTo && e.expense_date > appliedTo) return false
-      return true
+  const dateFilteredExpenses = useMemo(() => {
+    const bounds = rangeBoundsFor(timeFilter, appliedFrom, appliedTo)
+    if (!bounds) return expenses
+    return expenses.filter((e) => e.expense_date >= bounds.from && e.expense_date <= bounds.to)
+  }, [expenses, timeFilter, appliedFrom, appliedTo])
+
+  const tableExpenses = useMemo(() => {
+    const searched = dateFilteredExpenses.filter(
+      (e) =>
+        e.description.toLowerCase().includes(tableSearch.toLowerCase()) ||
+        e.category.toLowerCase().includes(tableSearch.toLowerCase())
+    )
+    return [...searched].sort((a, b) => {
+      const cmp = a.expense_date.localeCompare(b.expense_date)
+      return sortDirection === 'asc' ? cmp : -cmp
     })
-  }, [expenses, appliedFrom, appliedTo])
+  }, [dateFilteredExpenses, tableSearch, sortDirection])
 
   const donutData = useMemo(() => {
     const byCategory: Record<string, number> = {}
-    filteredExpenses.forEach((e) => {
+    dateFilteredExpenses.forEach((e) => {
       byCategory[e.category] = (byCategory[e.category] ?? 0) + e.amount
     })
     return Object.entries(byCategory).map(([category, total]) => ({ category, total }))
-  }, [filteredExpenses])
+  }, [dateFilteredExpenses])
 
   const totalChartData = useMemo(() => {
     if (period === '7d') {
@@ -119,9 +150,9 @@ export default function Expenses() {
     })
   }, [expenses, period])
 
-  function handleFilter() {
-    setAppliedFrom(dateFrom)
-    setAppliedTo(dateTo)
+  function handleApplyCustom() {
+    setAppliedFrom(customFrom)
+    setAppliedTo(customTo)
   }
 
   async function handleDeleteExpense() {
@@ -216,8 +247,8 @@ export default function Expenses() {
           <Loading />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-            {filteredExpenses.length === 0 && <p style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>Belum ada pengeluaran</p>}
-            {filteredExpenses.map((e) => (
+            {dateFilteredExpenses.length === 0 && <p style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>Belum ada pengeluaran</p>}
+            {dateFilteredExpenses.map((e) => (
               <div
                 key={e.id}
                 style={{
@@ -318,170 +349,166 @@ export default function Expenses() {
         }
       />
 
-      <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', marginBottom: 20 }}>
-        <div style={{ width: 280, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'flex', gap: 16 }}>
-            <Card style={{ boxShadow: 'var(--shadow-card)', flex: 1 }}>
-              <div style={{ fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 6 }}>Hari Ini</div>
-              <div style={{ fontSize: 18, fontWeight: 700 }}>{formatRupiah(summary.today)}</div>
-            </Card>
-            <Card style={{ boxShadow: 'var(--shadow-card)', flex: 1 }}>
-              <div style={{ fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 6 }}>Minggu Ini</div>
-              <div style={{ fontSize: 18, fontWeight: 700 }}>{formatRupiah(summary.week)}</div>
-            </Card>
-          </div>
-          <div style={{ display: 'flex', gap: 16 }}>
-            <Card style={{ boxShadow: 'var(--shadow-card)', flex: 1 }}>
-              <div style={{ fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 6 }}>Bulan Ini</div>
-              <div style={{ fontSize: 18, fontWeight: 700 }}>{formatRupiah(summary.month)}</div>
-            </Card>
-            <Card style={{ boxShadow: 'var(--shadow-card)', flex: 1, background: 'var(--color-inverse-surface)', borderColor: 'transparent' }}>
-              <div style={{ fontSize: 12, color: 'var(--color-on-inverse-muted)', textTransform: 'uppercase', marginBottom: 6 }}>Tahun Ini</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-accent-on-inverse)' }}>{formatRupiah(summary.year)}</div>
-            </Card>
-          </div>
-
-          <Card style={{ boxShadow: 'var(--shadow-card)', background: 'var(--color-accent)', borderColor: 'var(--color-accent-border)' }}>
-            <h3 style={{ color: 'var(--color-on-accent)', marginBottom: 16 }}>Rentang Tanggal</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={inputStyle} />
-              <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} style={inputStyle} />
-              <button
-                onClick={handleFilter}
-                style={{
-                  padding: 12,
-                  borderRadius: 10,
-                  border: 'none',
-                  background: 'var(--color-inverse-surface)',
-                  color: 'var(--color-on-inverse)',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                Filter Data
-              </button>
+      <div style={{ display: 'flex', gap: 20, marginBottom: 20 }}>
+        <Card style={{ boxShadow: 'var(--shadow-card)', flex: 2 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h3>Total Pengeluaran</h3>
+            <div style={{ display: 'inline-flex', padding: 4, borderRadius: 20, background: 'var(--color-surface-muted)' }}>
+              {periodOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setPeriod(opt.value)}
+                  style={{
+                    padding: '4px 14px',
+                    borderRadius: 20,
+                    border: 'none',
+                    fontSize: 13,
+                    cursor: 'pointer',
+                    background: period === opt.value ? 'var(--color-primary-solid)' : 'transparent',
+                    color: period === opt.value ? 'var(--color-on-primary)' : 'var(--color-text)',
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
-          </Card>
-        </div>
+          </div>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={totalChartData}>
+              <XAxis dataKey="label" stroke="var(--color-text-muted)" fontSize={11} />
+              <YAxis stroke="var(--color-text-muted)" fontSize={12} tickFormatter={(v: number) => v.toLocaleString('id-ID')} width={70} />
+              <Tooltip
+                formatter={(value) => formatRupiah(Number(value))}
+                contentStyle={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: 10, color: 'var(--color-text)' }}
+              />
+              <Bar dataKey="total" fill={chart.sales} radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
 
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div style={{ display: 'flex', gap: 20 }}>
-            <Card style={{ boxShadow: 'var(--shadow-card)', flex: 2 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <h3>Total Pengeluaran</h3>
-                <div style={{ display: 'inline-flex', padding: 4, borderRadius: 20, background: 'var(--color-surface-muted)' }}>
-                  {periodOptions.map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => setPeriod(opt.value)}
-                      style={{
-                        padding: '4px 14px',
-                        borderRadius: 20,
-                        border: 'none',
-                        fontSize: 13,
-                        cursor: 'pointer',
-                        background: period === opt.value ? 'var(--color-primary-solid)' : 'transparent',
-                        color: period === opt.value ? 'var(--color-on-primary)' : 'var(--color-text)',
-                      }}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={totalChartData}>
-                  <XAxis dataKey="label" stroke="var(--color-text-muted)" fontSize={11} />
-                  <YAxis stroke="var(--color-text-muted)" fontSize={12} tickFormatter={(v: number) => v.toLocaleString('id-ID')} width={70} />
+        <Card style={{ boxShadow: 'var(--shadow-card)', flex: 1 }}>
+          <h3 style={{ marginBottom: 8 }}>Per Kategori</h3>
+          {donutData.length === 0 ? (
+            <p style={{ color: 'var(--color-text-muted)' }}>Belum ada data</p>
+          ) : (
+            <>
+              <ResponsiveContainer width="100%" height={140}>
+                <PieChart>
+                  <Pie data={donutData} dataKey="total" nameKey="category" innerRadius={38} outerRadius={58} paddingAngle={2}>
+                    {donutData.map((_, i) => (
+                      <Cell key={i} fill={chart.donut[i % chart.donut.length]} />
+                    ))}
+                  </Pie>
                   <Tooltip
                     formatter={(value) => formatRupiah(Number(value))}
                     contentStyle={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: 10, color: 'var(--color-text)' }}
                   />
-                  <Bar dataKey="total" fill={chart.sales} radius={[6, 6, 0, 0]} />
-                </BarChart>
+                </PieChart>
               </ResponsiveContainer>
-            </Card>
-
-            <Card style={{ boxShadow: 'var(--shadow-card)', flex: 1 }}>
-              <h3 style={{ marginBottom: 8 }}>Per Kategori</h3>
-              {donutData.length === 0 ? (
-                <p style={{ color: 'var(--color-text-muted)' }}>Belum ada data</p>
-              ) : (
-                <>
-                  <ResponsiveContainer width="100%" height={140}>
-                    <PieChart>
-                      <Pie data={donutData} dataKey="total" nameKey="category" innerRadius={38} outerRadius={58} paddingAngle={2}>
-                        {donutData.map((_, i) => (
-                          <Cell key={i} fill={chart.donut[i % chart.donut.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value) => formatRupiah(Number(value))}
-                        contentStyle={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: 10, color: 'var(--color-text)' }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8, maxHeight: 90, overflowY: 'auto' }}>
-                    {donutData.map((d, i) => (
-                      <div key={d.category} style={{ display: 'grid', gridTemplateColumns: '10px 1fr auto', gap: 8, alignItems: 'center', fontSize: 12 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: chart.donut[i % chart.donut.length] }} />
-                        <span>{d.category}</span>
-                        <span style={{ color: 'var(--color-text-muted)' }}>{formatRupiah(d.total)}</span>
-                      </div>
-                    ))}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8, maxHeight: 90, overflowY: 'auto' }}>
+                {donutData.map((d, i) => (
+                  <div key={d.category} style={{ display: 'grid', gridTemplateColumns: '10px 1fr auto', gap: 8, alignItems: 'center', fontSize: 12 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: chart.donut[i % chart.donut.length] }} />
+                    <span>{d.category}</span>
+                    <span style={{ color: 'var(--color-text-muted)' }}>{formatRupiah(d.total)}</span>
                   </div>
-                </>
-              )}
-            </Card>
+                ))}
+              </div>
+            </>
+          )}
+        </Card>
+      </div>
+
+      <Card style={{ boxShadow: 'var(--shadow-card)', padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: 20, borderBottom: '1px solid var(--color-divider)', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
+            <Search size={16} color="var(--color-text-muted)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
+            <input
+              placeholder="Cari pengeluaran..."
+              value={tableSearch}
+              onChange={(e) => setTableSearch(e.target.value)}
+              style={searchInputStyle}
+            />
           </div>
 
-          <Card style={{ boxShadow: 'var(--shadow-card)', padding: 0, overflow: 'hidden' }}>
-            {loading ? (
-              <Loading />
-            ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--color-divider)' }}>
-                    <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Tanggal</th>
-                    <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Deskripsi</th>
-                    <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Kategori</th>
-                    <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Jumlah</th>
-                    <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredExpenses.map((e) => (
-                    <tr key={e.id} style={{ borderBottom: '1px solid var(--color-divider)' }}>
-                      <td style={{ padding: 14 }}>{new Date(e.expense_date).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })}</td>
-                      <td style={{ padding: 14, color: 'var(--color-primary-text)', fontWeight: 600 }}>{e.description}</td>
-                      <td style={{ padding: 14 }}>{e.category}</td>
-                      <td style={{ padding: 14, fontWeight: 700 }}>{formatRupiah(e.amount)}</td>
-                      <td style={{ padding: 14 }}>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button
-                            onClick={() => setEditingExpense(e)}
-                            aria-label="Edit"
-                            style={iconButtonStyle('var(--color-action-edit-bg)', 'var(--color-action-edit-text)')}
-                          >
-                            <Pencil size={14} />
-                          </button>
-                          <button
-                            onClick={() => setDeletingExpense(e)}
-                            aria-label="Hapus"
-                            style={iconButtonStyle('var(--color-action-danger-bg)', 'var(--color-action-danger-text)')}
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </Card>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <TimeFilterTabs
+              value={timeFilter}
+              onChange={setTimeFilter}
+              customFrom={customFrom}
+              customTo={customTo}
+              onCustomFromChange={setCustomFrom}
+              onCustomToChange={setCustomTo}
+              onApplyCustom={handleApplyCustom}
+            />
+            <button
+              onClick={() => setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'))}
+              aria-label={sortDirection === 'asc' ? 'Urutan naik' : 'Urutan turun'}
+              title={`Update Terakhir (${sortDirection === 'asc' ? 'Ascending' : 'Descending'})`}
+              style={{
+                height: 38,
+                padding: '0 10px',
+                borderRadius: 10,
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-surface-muted)',
+                color: 'var(--color-text)',
+                display: 'flex',
+                alignItems: 'center',
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+            >
+              {sortDirection === 'asc' ? <ArrowUp size={15} /> : <ArrowDown size={15} />}
+            </button>
+          </div>
         </div>
-      </div>
+
+        {loading ? (
+          <Loading />
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--color-divider)' }}>
+                <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>No.</th>
+                <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Tanggal</th>
+                <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Deskripsi</th>
+                <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Kategori</th>
+                <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Jumlah</th>
+                <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tableExpenses.map((e, i) => (
+                <tr key={e.id} style={{ borderBottom: '1px solid var(--color-divider)' }}>
+                  <td style={{ padding: 14, color: 'var(--color-text-muted)' }}>{i + 1}</td>
+                  <td style={{ padding: 14 }}>{new Date(e.expense_date).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })}</td>
+                  <td style={{ padding: 14, color: 'var(--color-primary-text)', fontWeight: 600 }}>{e.description}</td>
+                  <td style={{ padding: 14 }}>{e.category}</td>
+                  <td style={{ padding: 14, fontWeight: 700 }}>{formatRupiah(e.amount)}</td>
+                  <td style={{ padding: 14 }}>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button
+                        onClick={() => setEditingExpense(e)}
+                        aria-label="Edit"
+                        style={iconButtonStyle('var(--color-action-edit-bg)', 'var(--color-action-edit-text)')}
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        onClick={() => setDeletingExpense(e)}
+                        aria-label="Hapus"
+                        style={iconButtonStyle('var(--color-action-danger-bg)', 'var(--color-action-danger-text)')}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
 
       {showForm && (
         <Modal onClose={() => setShowForm(false)}>
