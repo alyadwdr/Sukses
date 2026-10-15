@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { Link } from 'react-router-dom'
-import { ThumbsUp } from 'lucide-react'
+import { ThumbsUp, CalendarClock } from 'lucide-react'
 import { useDashboardData, type ChartPeriod } from '@/features/dashboard/useDashboardData'
 import Card from '@/components/Card/Card'
 import PageTopBar from '@/components/PageTopBar/PageTopBar'
@@ -9,6 +9,95 @@ import BusinessFilterTabs from '@/components/BusinessFilterTabs/BusinessFilterTa
 import Loading from '@/components/Loading/Loading'
 import { useChartColors } from '@/lib/chartColors'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { useBusinessFilter } from '@/context/BusinessFilterContext'
+
+function expiryLabel(daysLeft: number) {
+  if (daysLeft < 0) return `Lewat ${Math.abs(daysLeft)} hari`
+  if (daysLeft === 0) return 'Hari ini'
+  return `${daysLeft} hari lagi`
+}
+
+function ExpiryCard({
+  items,
+  compact,
+}: {
+  items: { id: string; name: string; variant: string | null; expiry_date: string; daysLeft: number }[]
+  compact?: boolean
+}) {
+  const base = {
+    background: 'var(--color-warning-bg)',
+    borderColor: 'var(--color-warning-border)',
+    boxShadow: 'var(--shadow-card)',
+  }
+  if (items.length === 0) {
+    const size = compact ? 40 : 48
+    return (
+      <Card
+        style={{
+          ...base,
+          flex: compact ? undefined : 1,
+          marginBottom: compact ? 20 : undefined,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}
+      >
+        <div>
+          <h3 style={{ color: 'var(--color-warning-text)', marginBottom: compact ? 4 : 6, fontSize: compact ? 15 : undefined }}>
+            Segera Kadaluwarsa
+          </h3>
+          <p style={{ color: 'var(--color-warning-text)', opacity: 0.8, fontSize: compact ? 13 : 14 }}>
+            Tidak ada produk yang mendekati kadaluwarsa.
+          </p>
+        </div>
+        <div
+          style={{
+            width: size,
+            height: size,
+            borderRadius: '50%',
+            background: 'var(--color-warning-border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <CalendarClock size={compact ? 18 : 22} color="var(--color-warning-text)" />
+        </div>
+      </Card>
+    )
+  }
+  return (
+    <Card style={{ ...base, flex: compact ? undefined : 1, marginBottom: compact ? 20 : undefined }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <h3 style={{ color: 'var(--color-warning-text)', fontSize: compact ? 15 : undefined }}>Segera Kadaluwarsa</h3>
+        <Link to="/dashboard/products" style={{ ...linkStyle, color: 'var(--color-warning-text)' }}>
+          {compact ? 'Lihat Semua →' : 'Lihat Produk →'}
+        </Link>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: compact ? 10 : 12 }}>
+        {items.map((p) => (
+          <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, fontSize: 13 }}>
+            <span style={{ color: 'var(--color-text)' }}>
+              {p.name}
+              {p.variant ? ` (${p.variant})` : ''}
+            </span>
+            <span
+              style={{
+                textAlign: 'right',
+                fontWeight: 600,
+                color: p.daysLeft < 0 ? 'var(--color-danger-text)' : 'var(--color-warning-text)',
+              }}
+            >
+              {expiryLabel(p.daysLeft)}
+            </span>
+          </div>
+        ))}
+      </div>
+    </Card>
+  )
+}
 
 function formatRupiah(value: number) {
   return `Rp${value.toLocaleString('id-ID')}`
@@ -57,6 +146,7 @@ export default function Dashboard() {
   const chart = useChartColors()
   const donutColors = chart.donut
   const isMobile = useIsMobile()
+  const { filter } = useBusinessFilter()
 
   if (loading || !data) return <Loading />
 
@@ -175,6 +265,8 @@ export default function Dashboard() {
             </div>
           </Card>
         )}
+
+        {filter !== 'plastik' && <ExpiryCard items={data.expiringProducts} compact />}
 
         <Card style={{ boxShadow: 'var(--shadow-card)', marginBottom: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -299,6 +391,50 @@ export default function Dashboard() {
             </span>
           </div>
         </Card>
+
+        <Card style={{ width: 280, flexShrink: 0, boxShadow: 'var(--shadow-card)', display: 'flex', flexDirection: 'column' }}>
+          <h3 style={{ marginBottom: 8 }}>Produk Terlaris</h3>
+          {data.bestSellers.length === 0 ? (
+            <p style={{ color: 'var(--color-text-muted)' }}>Belum ada penjualan</p>
+          ) : (
+            <>
+              <ResponsiveContainer width="100%" height={160}>
+                <PieChart>
+                  <Pie data={data.bestSellers} dataKey="qty" nameKey="name" innerRadius={42} outerRadius={65} paddingAngle={2}>
+                    {data.bestSellers.map((_, i) => (
+                      <Cell key={i} fill={donutColors[i % donutColors.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value, name) => [`${value} terjual`, name]}
+                    contentStyle={{
+                      background: 'var(--color-card)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: 10,
+                      color: 'var(--color-text)',
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                {data.bestSellers.map((p, i) => (
+                  <div key={p.name} style={{ display: 'grid', gridTemplateColumns: '10px 1fr 40px', gap: 8, alignItems: 'center', fontSize: 12 }}>
+                    <span
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        background: donutColors[i % donutColors.length],
+                      }}
+                    />
+                    <span>{p.name}</span>
+                    <span style={{ textAlign: 'right', color: 'var(--color-text-muted)' }}>{p.qty}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </Card>
       </div>
 
       <div style={{ display: 'flex', gap: 20 }}>
@@ -394,49 +530,7 @@ export default function Dashboard() {
           </Card>
         )}
 
-        <Card style={{ flex: 1, boxShadow: 'var(--shadow-card)' }}>
-          <h3 style={{ marginBottom: 8 }}>Produk Terlaris</h3>
-          {data.bestSellers.length === 0 ? (
-            <p style={{ color: 'var(--color-text-muted)' }}>Belum ada penjualan</p>
-          ) : (
-            <>
-              <ResponsiveContainer width="100%" height={160}>
-                <PieChart>
-                  <Pie data={data.bestSellers} dataKey="qty" nameKey="name" innerRadius={42} outerRadius={65} paddingAngle={2}>
-                    {data.bestSellers.map((_, i) => (
-                      <Cell key={i} fill={donutColors[i % donutColors.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value, name) => [`${value} terjual`, name]}
-                    contentStyle={{
-                      background: 'var(--color-card)',
-                      border: '1px solid var(--color-border)',
-                      borderRadius: 10,
-                      color: 'var(--color-text)',
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 100, overflowY: 'auto', marginTop: 8 }}>
-                {data.bestSellers.map((p, i) => (
-                  <div key={p.name} style={{ display: 'grid', gridTemplateColumns: '10px 1fr 40px', gap: 8, alignItems: 'center', fontSize: 12 }}>
-                    <span
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        background: donutColors[i % donutColors.length],
-                      }}
-                    />
-                    <span>{p.name}</span>
-                    <span style={{ textAlign: 'right', color: 'var(--color-text-muted)' }}>{p.qty}</span>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </Card>
+        {filter !== 'plastik' && <ExpiryCard items={data.expiringProducts} />}
       </div>
     </div>
   )

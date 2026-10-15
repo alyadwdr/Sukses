@@ -261,7 +261,7 @@ export default function Inventory() {
     [products, filter]
   )
   const filteredProducts = productsByBusiness.filter((p) =>
-    p.name.toLowerCase().includes(stockSearch.toLowerCase())
+    `${p.name} ${p.variant ?? ''}`.toLowerCase().includes(stockSearch.toLowerCase())
   )
 
   const sortedProducts = useMemo(() => {
@@ -294,7 +294,7 @@ export default function Inventory() {
   }, [movementsByBusiness, historyTimeFilter, appliedFrom, appliedTo])
 
   const filteredMovements = movementsByTime.filter((m) =>
-    m.products.name.toLowerCase().includes(historySearch.toLowerCase())
+    `${m.products.name} ${m.products.variant ?? ''}`.toLowerCase().includes(historySearch.toLowerCase())
   )
 
   function handleApplyCustom() {

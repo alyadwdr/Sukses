@@ -27,6 +27,7 @@ import Loading from '@/components/Loading/Loading'
 import SortControl, { type SortField, type SortDirection } from '@/components/SortControl/SortControl'
 import { supabase } from '@/lib/supabase'
 import type { Product } from '@/types/product'
+import { daysUntil, EXPIRY_WARNING_DAYS } from '@/lib/expiry'
 
 type ViewMode = 'list' | 'large' | 'medium' | 'small'
 
@@ -41,6 +42,20 @@ const sizeConfig: Record<Exclude<ViewMode, 'list'>, { minWidth: number; avatar: 
   large: { minWidth: 200, avatar: 90, font: 14 },
   medium: { minWidth: 150, avatar: 64, font: 13 },
   small: { minWidth: 100, avatar: 40, font: 11 },
+}
+
+function formatExpiry(date: string | null) {
+  if (!date) return '-'
+  const [y, m, d] = date.split('-')
+  return `${d}/${m}/${y}`
+}
+
+function expiryStyle(date: string | null): React.CSSProperties {
+  if (!date) return { color: 'var(--color-text-muted)' }
+  const days = daysUntil(date)
+  if (days < 0) return { color: 'var(--color-danger-text)', fontWeight: 600 }
+  if (days <= EXPIRY_WARNING_DAYS) return { color: 'var(--color-warning-text)', fontWeight: 600 }
+  return {}
 }
 
 function iconButtonStyle(bg: string, color: string) {
@@ -89,7 +104,7 @@ export default function Products() {
   const isMobile = useIsMobile()
 
   const filteredProducts = products.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase())
+    `${p.name} ${p.variant ?? ''}`.toLowerCase().includes(search.toLowerCase())
   )
 
   const sortedProducts = useMemo(() => {
@@ -186,7 +201,7 @@ export default function Products() {
                         <CategoryBadge category={p.category} />
                       </div>
                       <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
-                        {p.variant || '—'} · {p.stock} {p.unit}
+                        {p.variant || '—'} · {p.stock} {p.unit}{p.expiry_date ? ` · Exp ${formatExpiry(p.expiry_date)}` : ''}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -443,6 +458,7 @@ export default function Products() {
                 <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Harga Jual</th>
                 <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Stok</th>
                 <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Satuan</th>
+                <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Kadaluwarsa</th>
                 <th style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Aksi</th>
               </tr>
             </thead>
@@ -461,6 +477,7 @@ export default function Products() {
                   <td style={{ padding: 14 }}>
                     <SatuanCell p={p} />
                   </td>
+                  <td style={{ padding: 14, ...expiryStyle(p.expiry_date) }}>{formatExpiry(p.expiry_date)}</td>
                   <td style={{ padding: 14 }}>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button

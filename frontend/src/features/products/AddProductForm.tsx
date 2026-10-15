@@ -37,6 +37,7 @@ export default function AddProductForm({ onSuccess, onCancel }: AddProductFormPr
   const [name, setName] = useState('')
   const [category, setCategory] = useState<'sembako' | 'plastik'>('sembako')
   const [variant, setVariant] = useState('')
+  const [expiryDate, setExpiryDate] = useState('')
   const [saving, setSaving] = useState(false)
   const [image, setImage] = useState<string | null>(null)
   const [autoExpense, setAutoExpense] = useState(true)
@@ -123,6 +124,7 @@ export default function AddProductForm({ onSuccess, onCancel }: AddProductFormPr
         name,
         category,
         variant: variant || null,
+        expiry_date: category === 'sembako' && expiryDate ? expiryDate : null,
         purchase_price: finalPurchasePrice,
         selling_price: finalSellingPrice,
         unit: finalUnit,
@@ -230,6 +232,13 @@ export default function AddProductForm({ onSuccess, onCancel }: AddProductFormPr
             <option value="plastik">Plastik</option>
           </select>
         </div>
+
+        {category === 'sembako' && (
+          <div>
+            <label style={labelStyle}>Tanggal Kadaluwarsa (opsional)</label>
+            <input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} style={inputStyle} />
+          </div>
+        )}
 
         <div>
           <label style={labelStyle}>Jumlah Satuan</label>

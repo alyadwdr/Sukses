@@ -68,7 +68,7 @@ export default function Transactions() {
     return timeFilteredTransactions.filter(
       (trx) =>
         trx.trx_number.toLowerCase().includes(q) ||
-        trx.transaction_items.some((item) => item.products.name.toLowerCase().includes(q))
+        trx.transaction_items.some((item) => `${item.products.name} ${item.products.variant ?? ''}`.toLowerCase().includes(q))
     )
   }, [timeFilteredTransactions, search])
 

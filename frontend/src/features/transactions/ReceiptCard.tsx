@@ -22,7 +22,10 @@ function ItemRow({ item }: { item: TransactionRow['transaction_items'][number] }
         alignItems: 'baseline',
       }}
     >
-      <span>{item.products.name}</span>
+      <span>
+        {item.products.name}
+        {item.products.variant && <span style={{ color: 'var(--color-text-muted)' }}> ({item.products.variant})</span>}
+      </span>
       <span style={{ color: 'var(--color-text-muted)', fontSize: 12 }}>
         {item.unit_label ? `${item.unit_quantity} ${item.unit_label}` : item.quantity} x Rp{item.price_at_sale.toLocaleString('id-ID')}
       </span>

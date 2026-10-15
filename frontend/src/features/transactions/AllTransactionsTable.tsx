@@ -25,7 +25,12 @@ export default function AllTransactionsTable({ transactions }: Props) {
             <tr key={item.id} style={{ borderBottom: '1px solid var(--color-divider)' }}>
               <td style={{ padding: 14 }}>{new Date(trx.created_at).toLocaleDateString('id-ID')}</td>
               <td style={{ padding: 14, color: 'var(--color-primary-text)' }}>{trx.trx_number}</td>
-              <td style={{ padding: 14, fontWeight: 600 }}>{item.products.name}</td>
+              <td style={{ padding: 14, fontWeight: 600 }}>
+                {item.products.name}
+                {item.products.variant && (
+                  <span style={{ fontWeight: 400, color: 'var(--color-text-muted)' }}> ({item.products.variant})</span>
+                )}
+              </td>
               <td style={{ padding: 14 }}>
                 <CategoryBadge category={item.products.category} />
               </td>

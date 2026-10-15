@@ -10,6 +10,7 @@ export interface Product {
   min_stock: number
   image_url: string | null
   variant: string | null
+  expiry_date: string | null
   updated_at: string
   created_at: string
 }

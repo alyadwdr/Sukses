@@ -63,6 +63,7 @@ export default function EditProductForm({ product, onSuccess, onCancel }: EditPr
   const [image, setImage] = useState<string | null>(product.image_url)
   const [saving, setSaving] = useState(false)
   const [variant, setVariant] = useState(product.variant ?? '')
+  const [expiryDate, setExpiryDate] = useState(product.expiry_date ?? '')
   const [loadingUnits, setLoadingUnits] = useState(true)
 
   const [purchasePrice, setPurchasePrice] = useState(String(product.purchase_price))
@@ -157,6 +158,7 @@ export default function EditProductForm({ product, onSuccess, onCancel }: EditPr
         min_stock: newMinStock,
         image_url: imageUrl,
         variant: variant || null,
+        expiry_date: category === 'sembako' && expiryDate ? expiryDate : null,
       })
       .eq('id', product.id)
 
@@ -250,6 +252,13 @@ export default function EditProductForm({ product, onSuccess, onCancel }: EditPr
             <option value="plastik">Plastik</option>
           </select>
         </div>
+
+        {category === 'sembako' && (
+          <div>
+            <label style={labelStyle}>Tanggal Kadaluwarsa (opsional)</label>
+            <input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} style={inputStyle} />
+          </div>
+        )}
 
         {!loadingUnits && (
           <div>

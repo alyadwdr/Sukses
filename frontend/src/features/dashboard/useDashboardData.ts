@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useBusinessFilter } from '@/context/BusinessFilterContext'
 import { filterItemsByCategory } from '@/lib/categoryFilter'
+import { daysUntil, EXPIRY_WARNING_DAYS } from '@/lib/expiry'
 import {
   jakartaDateString,
   jakartaDateOnly,
@@ -24,6 +25,7 @@ interface DashboardData {
   chartData: { label: string; sales: number; expenses: number }[]
   recentTransactions: { id: string; trx_number: string; created_at: string; total: number; itemCount: number }[]
   lowStockProducts: { id: string; name: string; stock: number; unit: string }[]
+  expiringProducts: { id: string; name: string; variant: string | null; expiry_date: string; daysLeft: number }[]
   bestSellers: { name: string; qty: number }[]
 }
 
@@ -64,7 +66,7 @@ export function useDashboardData(period: ChartPeriod) {
       rangeEnd = endOfJakartaYear()
     }
 
-    const [{ data: periodTrx }, { data: latestTrx }, { data: periodExpenses }, { data: todayExpensesData }, { data: lowStock }] =
+    const [{ data: periodTrx }, { data: latestTrx }, { data: periodExpenses }, { data: todayExpensesData }, { data: lowStock }, { data: expiring }] =
       await Promise.all([
         supabase.from('transactions').select(TRX_SELECT).gte('created_at', rangeStart.toISOString()).lte('created_at', rangeEnd.toISOString()),
         supabase.from('transactions').select(TRX_SELECT).order('created_at', { ascending: false }).limit(30),
@@ -75,6 +77,12 @@ export function useDashboardData(period: ChartPeriod) {
           .lte('expense_date', jakartaDateString(rangeEnd)),
         supabase.from('expenses').select('amount, expense_date').gte('expense_date', jakartaDateString(todayStart)),
         supabase.from('products').select('id, name, stock, unit, min_stock').order('stock', { ascending: true }),
+        supabase
+          .from('products')
+          .select('id, name, variant, expiry_date')
+          .eq('category', 'sembako')
+          .not('expiry_date', 'is', null)
+          .order('expiry_date', { ascending: true }),
       ])
 
     const relevantPeriodTrx = (periodTrx ?? []).filter((trx) => relevantItems(trx, filter).length > 0)
@@ -154,6 +162,11 @@ export function useDashboardData(period: ChartPeriod) {
 
     const lowStockProducts = (lowStock ?? []).filter((p) => p.stock <= p.min_stock).slice(0, 5)
 
+    const expiringProducts = (expiring ?? [])
+      .map((p: any) => ({ ...p, daysLeft: daysUntil(p.expiry_date) }))
+      .filter((p) => p.daysLeft <= EXPIRY_WARNING_DAYS)
+      .slice(0, 5)
+
     const productQty: Record<string, number> = {}
     relevantPeriodTrx.forEach((trx) => {
       relevantItems(trx, filter).forEach((item: any) => {
@@ -174,6 +187,7 @@ export function useDashboardData(period: ChartPeriod) {
       chartData,
       recentTransactions,
       lowStockProducts,
+      expiringProducts,
       bestSellers,
     })
     setLoading(false)

@@ -20,6 +20,7 @@ export interface TransactionRow {
     unit_quantity: number | null
     products: {
       name: string
+      variant: string | null
       category: string
     }
   }[]
@@ -49,7 +50,7 @@ export function useTransactions() {
           subtotal,
           unit_label,
           unit_quantity,
-          products ( name, category )
+          products ( name, variant, category )
         )
       `)
       .order('created_at', { ascending: false })
