@@ -30,6 +30,17 @@ const viewOptions: { value: ViewMode; label: string; icon: React.ReactNode }[] =
   { value: 'small', label: 'Ikon Kecil', icon: <LayoutGrid size={13} /> },
 ]
 
+const variantSelectStyle: React.CSSProperties = {
+  fontSize: 12,
+  borderRadius: 6,
+  border: '1px solid var(--color-border)',
+  background: 'var(--color-surface-muted)',
+  color: 'var(--color-text)',
+  padding: '3px 6px',
+  fontFamily: 'var(--font-body)',
+  maxWidth: 130,
+}
+
 const sizeConfig: Record<Exclude<ViewMode, 'list'>, { minWidth: number; avatar: number; font: number }> = {
   large: { minWidth: 200, avatar: 90, font: 14 },
   medium: { minWidth: 150, avatar: 64, font: 13 },
@@ -53,6 +64,7 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [viewMenuOpen, setViewMenuOpen] = useState(false)
   const [qtyInputs, setQtyInputs] = useState<Record<string, string>>({})
+  const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({})
   const { refetch: refetchNotifications } = useNotifications()
   const { unitsByProduct } = useProductUnits()
 
@@ -65,9 +77,24 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
       })
   }, [])
 
-  const filteredProducts = products.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase())
-  )
+  const productGroups = useMemo(() => {
+    const map = new Map<string, Product[]>()
+    for (const p of products) {
+      if (!p.name.toLowerCase().includes(search.toLowerCase())) continue
+      const list = map.get(p.name) ?? []
+      list.push(p)
+      map.set(p.name, list)
+    }
+    return Array.from(map.values())
+  }, [products, search])
+
+  function activeVariant(group: Product[]): Product {
+    return group.find((p) => p.id === selectedVariants[group[0].name]) ?? group[0]
+  }
+
+  function variantLabel(p: Product) {
+    return p.variant || 'Standar'
+  }
 
   function unitsFor(product: Product): FlattenedUnit[] {
     return allUnitsForProduct(product, unitsByProduct(product.id))
@@ -96,6 +123,15 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
         )
       }
       return [...prev, { product, quantity: 1, unitName: product.unit }]
+    })
+  }
+
+  function removeFromCart(productId: string) {
+    setCart((prev) => prev.filter((item) => item.product.id !== productId))
+    setQtyInputs((prev) => {
+      const next = { ...prev }
+      delete next[productId]
+      return next
     })
   }
 
@@ -309,41 +345,69 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
 
           {viewMode === 'list' ? (
             <div style={{ maxHeight: 380, overflowY: 'auto' }}>
-              {filteredProducts.map((p) => (
-                <div
-                  key={p.id}
-                  onClick={() => addToCart(p)}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '10px 8px',
-                    borderBottom: '1px solid var(--color-divider)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>{p.name}</div>
-                    <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-                      Rp{p.selling_price.toLocaleString('id-ID')} · Stok {p.stock}
-                    </div>
-                  </div>
-                  <span
+              {productGroups.map((group) => {
+                const p = activeVariant(group)
+                return (
+                  <div
+                    key={group[0].name}
+                    onClick={() => addToCart(p)}
                     style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 8,
-                      background: p.stock <= 0 ? 'var(--color-border)' : 'var(--color-primary-solid)',
-                      color: 'var(--color-on-primary)',
                       display: 'flex',
+                      justifyContent: 'space-between',
                       alignItems: 'center',
-                      justifyContent: 'center',
+                      gap: 12,
+                      padding: '10px 8px',
+                      borderBottom: '1px solid var(--color-divider)',
+                      cursor: 'pointer',
                     }}
                   >
-                    +
-                  </span>
-                </div>
-              ))}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, fontSize: 14 }}>
+                      <span style={{ fontWeight: 600 }}>{p.name}</span>
+                      <span style={{ width: 1, height: 14, background: 'var(--color-border)', flexShrink: 0 }} />
+                      <span style={{ fontSize: 13, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>Stok {p.stock}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                      <span style={{ fontSize: 13, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
+                        Rp{p.selling_price.toLocaleString('id-ID')}
+                      </span>
+                      {(group.length > 1 || p.variant) && (
+                        <span style={{ width: 1, height: 14, background: 'var(--color-border)' }} />
+                      )}
+                      {group.length > 1 && (
+                        <select
+                          value={p.id}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => setSelectedVariants((prev) => ({ ...prev, [p.name]: e.target.value }))}
+                          style={variantSelectStyle}
+                        >
+                          {group.map((v) => (
+                            <option key={v.id} value={v.id}>
+                              {variantLabel(v)}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                      {group.length === 1 && p.variant && (
+                        <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{p.variant}</span>
+                      )}
+                      <span
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 8,
+                          background: p.stock <= 0 ? 'var(--color-border)' : 'var(--color-primary-solid)',
+                          color: 'var(--color-on-primary)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        +
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           ) : (
             <div
@@ -355,9 +419,11 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
                 overflowY: 'auto',
               }}
             >
-              {filteredProducts.map((p) => (
+              {productGroups.map((group) => {
+                const p = activeVariant(group)
+                return (
                 <div
-                  key={p.id}
+                  key={group[0].name}
                   onClick={() => addToCart(p)}
                   style={{
                     cursor: 'pointer',
@@ -390,11 +456,29 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
                     )}
                   </div>
                   <div style={{ fontSize: sizeConfig[viewMode].font, fontWeight: 600 }}>{p.name}</div>
+                  {group.length > 1 && (
+                    <select
+                      value={p.id}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => setSelectedVariants((prev) => ({ ...prev, [p.name]: e.target.value }))}
+                      style={{ ...variantSelectStyle, margin: '4px 0', maxWidth: '100%' }}
+                    >
+                      {group.map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {variantLabel(v)}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {group.length === 1 && p.variant && (
+                    <div style={{ fontSize: sizeConfig[viewMode].font - 1, color: 'var(--color-text-muted)' }}>{p.variant}</div>
+                  )}
                   <div style={{ fontSize: sizeConfig[viewMode].font - 1, color: 'var(--color-text-muted)' }}>
                     Rp{p.selling_price.toLocaleString('id-ID')} · Stok {p.stock}
                   </div>
                 </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
@@ -417,7 +501,34 @@ export default function NewTransactionForm({ onSuccess, onCancel }: NewTransacti
             const max = maxQtyForUnit(item.product, item.unitName)
             return (
               <div key={item.product.id} style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 13, marginBottom: 4 }}>{item.product.name}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 4 }}>
+                  <div style={{ fontSize: 13 }}>
+                    {item.product.name}
+                    {item.product.variant && (
+                      <span style={{ color: 'var(--color-on-accent-muted)' }}> · {item.product.variant}</span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => removeFromCart(item.product.id)}
+                    aria-label="Hapus dari transaksi"
+                    style={{
+                      width: 20,
+                      height: 20,
+                      flexShrink: 0,
+                      borderRadius: '50%',
+                      border: 'none',
+                      background: 'transparent',
+                      color: 'var(--color-on-accent-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                     <button

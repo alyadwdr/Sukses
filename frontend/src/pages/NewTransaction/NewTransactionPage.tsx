@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Search, Calendar, Banknote, QrCode, ChevronDown, ChevronUp } from 'lucide-react'
+import { ArrowLeft, Search, X, Calendar, Banknote, QrCode, ChevronDown, ChevronUp } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useNotifications } from '@/context/NotificationsContext'
 import { useProductUnits } from '@/features/products/useProductUnits'
@@ -42,6 +42,7 @@ export default function NewTransactionPage() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [qtyInputs, setQtyInputs] = useState<Record<string, string>>({})
+  const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({})
 
   useEffect(() => {
     supabase
@@ -52,7 +53,20 @@ export default function NewTransactionPage() {
       })
   }, [])
 
-  const filteredProducts = products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
+  const productGroups = useMemo(() => {
+    const map = new Map<string, Product[]>()
+    for (const p of products) {
+      if (!p.name.toLowerCase().includes(search.toLowerCase())) continue
+      const list = map.get(p.name) ?? []
+      list.push(p)
+      map.set(p.name, list)
+    }
+    return Array.from(map.values())
+  }, [products, search])
+
+  function activeVariant(group: Product[]): Product {
+    return group.find((p) => p.id === selectedVariants[group[0].name]) ?? group[0]
+  }
 
   function unitsFor(product: Product): FlattenedUnit[] {
     return allUnitsForProduct(product, unitsByProduct(product.id))
@@ -79,6 +93,15 @@ export default function NewTransactionPage() {
         return prev.map((item) => (item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item))
       }
       return [...prev, { product, quantity: 1, unitName: product.unit }]
+    })
+  }
+
+  function removeFromCart(productId: string) {
+    setCart((prev) => prev.filter((item) => item.product.id !== productId))
+    setQtyInputs((prev) => {
+      const next = { ...prev }
+      delete next[productId]
+      return next
     })
   }
 
@@ -236,43 +259,76 @@ export default function NewTransactionPage() {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px', paddingBottom: cart.length === 0 ? 16 : 8 }}>
-        {filteredProducts.map((p) => (
-          <div
-            key={p.id}
-            onClick={() => addToCart(p)}
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '12px 4px',
-              borderBottom: '1px solid var(--color-divider)',
-              cursor: p.stock <= 0 ? 'not-allowed' : 'pointer',
-              opacity: p.stock <= 0 ? 0.5 : 1,
-            }}
-          >
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>{p.name}</div>
-              <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-                Rp{p.selling_price.toLocaleString('id-ID')} · Stok {p.stock}
-              </div>
-            </div>
-            <span
+        {productGroups.map((group) => {
+          const p = activeVariant(group)
+          return (
+            <div
+              key={group[0].name}
+              onClick={() => addToCart(p)}
               style={{
-                width: 30,
-                height: 30,
-                borderRadius: 8,
-                background: p.stock <= 0 ? 'var(--color-border)' : 'var(--color-primary-solid)',
-                color: 'var(--color-on-primary)',
                 display: 'flex',
+                justifyContent: 'space-between',
                 alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
+                gap: 10,
+                padding: '12px 4px',
+                borderBottom: '1px solid var(--color-divider)',
+                cursor: p.stock <= 0 ? 'not-allowed' : 'pointer',
+                opacity: p.stock <= 0 ? 0.5 : 1,
               }}
             >
-              +
-            </span>
-          </div>
-        ))}
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>{p.name}</div>
+                {group.length > 1 && (
+                  <select
+                    value={p.id}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => setSelectedVariants((prev) => ({ ...prev, [p.name]: e.target.value }))}
+                    style={{
+                      marginTop: 4,
+                      fontSize: 12,
+                      borderRadius: 6,
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-surface-muted)',
+                      color: 'var(--color-text)',
+                      padding: '3px 6px',
+                      fontFamily: 'var(--font-body)',
+                      maxWidth: 140,
+                    }}
+                  >
+                    {group.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.variant || 'Standar'}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {group.length === 1 && p.variant && (
+                  <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{p.variant}</div>
+                )}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                <div style={{ textAlign: 'right', fontSize: 13, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
+                  <div>Rp{p.selling_price.toLocaleString('id-ID')}</div>
+                  <div style={{ fontSize: 12 }}>Stok {p.stock}</div>
+                </div>
+                <span
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 8,
+                    background: p.stock <= 0 ? 'var(--color-border)' : 'var(--color-primary-solid)',
+                    color: 'var(--color-on-primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  +
+                </span>
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       <div
@@ -334,7 +390,34 @@ export default function NewTransactionPage() {
                   const max = maxQtyForUnit(item.product, item.unitName)
                   return (
                     <div key={item.product.id} style={{ marginBottom: 14 }}>
-                      <div style={{ fontSize: 13, marginBottom: 4, color: 'var(--color-on-accent)' }}>{item.product.name}</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 4 }}>
+                        <div style={{ fontSize: 13, color: 'var(--color-on-accent)' }}>
+                          {item.product.name}
+                          {item.product.variant && (
+                            <span style={{ color: 'var(--color-on-accent-muted)' }}> · {item.product.variant}</span>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => removeFromCart(item.product.id)}
+                          aria-label="Hapus dari transaksi"
+                          style={{
+                            width: 24,
+                            height: 24,
+                            flexShrink: 0,
+                            borderRadius: '50%',
+                            border: 'none',
+                            background: 'transparent',
+                            color: 'var(--color-on-accent-muted)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            padding: 0,
+                          }}
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                           <button
